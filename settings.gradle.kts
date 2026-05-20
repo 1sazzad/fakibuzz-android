@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ReviseQ"
+rootProject.name = "QArena"
 include(":app")
