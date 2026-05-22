@@ -7,11 +7,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qarena.android.data.remote.dto.QuestionResponse
 import com.qarena.android.data.repository.QuestionRepository
+import com.qarena.android.model.Subject
+import com.qarena.android.util.PaperTypeLookups
+import com.qarena.android.util.SubjectLookups
+import com.qarena.android.data.repository.SubjectRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 class QuestionsViewModel : ViewModel() {
 
     private val questionRepository = QuestionRepository()
+    private val subjectRepository = SubjectRepository()
+    private var loadJob: Job? = null
 
     var questions by mutableStateOf<List<QuestionResponse>>(emptyList())
         private set
@@ -25,15 +32,53 @@ class QuestionsViewModel : ViewModel() {
     var selectedSubjectCode by mutableStateOf<String?>(null)
         private set
 
-    fun loadQuestions(subjectCode: String) {
-        viewModelScope.launch {
+    var subject by mutableStateOf<Subject?>(null)
+        private set
+
+    var supportedPaperTypes by mutableStateOf<List<String>>(emptyList())
+        private set
+
+    var selectedPaperType by mutableStateOf<String?>(null)
+        private set
+
+    fun loadQuestions(subjectCode: String, paperType: String? = null) {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             val trimmedSubjectCode = subjectCode.trim()
 
+            if (trimmedSubjectCode.isBlank()) {
+                errorMessage = "Subject code is required"
+                questions = emptyList()
+                selectedSubjectCode = null
+                isLoading = false
+                return@launch
+            }
+
+            val subjectChanged = selectedSubjectCode != trimmedSubjectCode
+
             selectedSubjectCode = trimmedSubjectCode
+            if (subjectChanged) {
+                subject = null
+                supportedPaperTypes = emptyList()
+                selectedPaperType = null
+                questions = emptyList()
+            }
+
             isLoading = true
             errorMessage = null
 
-            val result = questionRepository.getQuestions(trimmedSubjectCode)
+            ensureSubjectMetadata(trimmedSubjectCode)
+
+            val effectivePaperType = PaperTypeLookups.resolveSelectedPaperType(
+                preferredPaperType = paperType ?: selectedPaperType,
+                supportedPaperTypes = supportedPaperTypes
+            )
+            selectedPaperType = effectivePaperType
+
+            val result = questionRepository.getQuestions(
+                subjectCode = trimmedSubjectCode,
+                paperType = effectivePaperType
+            )
 
             result
                 .onSuccess { questionList ->
@@ -45,5 +90,36 @@ class QuestionsViewModel : ViewModel() {
 
             isLoading = false
         }
+    }
+
+    fun selectPaperType(subjectCode: String, paperType: String) {
+        loadQuestions(subjectCode, paperType)
+    }
+
+    private suspend fun ensureSubjectMetadata(subjectCode: String) {
+        if (subject != null && selectedSubjectCode == subjectCode) {
+            return
+        }
+
+        val result = subjectRepository.getSubjectOverview(subjectCode)
+
+        result
+            .onSuccess { overview ->
+                val subjectMetadata = overview.subject?.let { with(SubjectLookups) { it.toSubject() } }
+                subject = subjectMetadata
+                supportedPaperTypes = PaperTypeLookups.normalizeSupportedPaperTypes(
+                    subjectMetadata?.supportedPaperTypes ?: overview.subject?.supportedPaperTypes
+                )
+                selectedPaperType = PaperTypeLookups.resolveSelectedPaperType(
+                    preferredPaperType = selectedPaperType,
+                    supportedPaperTypes = supportedPaperTypes
+                )
+            }
+            .onFailure {
+                if (subject == null) {
+                    supportedPaperTypes = emptyList()
+                    selectedPaperType = null
+                }
+            }
     }
 }

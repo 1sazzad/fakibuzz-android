@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -21,15 +22,27 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.qarena.android.presentation.common.BrandLogo
 
 @Composable
 fun LoginScreen(
-    onLoginClick: () -> Unit,
+    onProfileCompleteLogin: () -> Unit,
+    onProfileIncompleteLogin: () -> Unit,
+    onRegisterClick: () -> Unit,
+    onForgotPasswordClick: () -> Unit,
     loginViewModel: LoginViewModel = viewModel()
 ) {
-    LaunchedEffect(loginViewModel.loginSuccess) {
-        if (loginViewModel.loginSuccess) {
-            onLoginClick()
+    LaunchedEffect(loginViewModel.loginRouteState) {
+        when (loginViewModel.loginRouteState) {
+            LoginRouteState.SuccessProfileComplete -> {
+                loginViewModel.resetLoginRouteState()
+                onProfileCompleteLogin()
+            }
+            LoginRouteState.SuccessProfileIncomplete -> {
+                loginViewModel.resetLoginRouteState()
+                onProfileIncompleteLogin()
+            }
+            else -> Unit
         }
     }
 
@@ -44,6 +57,10 @@ fun LoginScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            BrandLogo()
+
+            Spacer(modifier = Modifier.height(20.dp))
+
             Text(
                 text = "Welcome Back",
                 fontSize = 30.sp,
@@ -89,6 +106,18 @@ fun LoginScreen(
                         "Login"
                     }
                 )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            TextButton(onClick = onForgotPasswordClick) {
+                Text(text = "Forgot password?")
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            TextButton(onClick = onRegisterClick) {
+                Text(text = "Create an account")
             }
 
             loginViewModel.errorMessage?.let { message ->

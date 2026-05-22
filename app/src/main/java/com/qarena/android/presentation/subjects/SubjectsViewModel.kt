@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.qarena.android.data.remote.dto.SubjectResponse
+import com.qarena.android.model.Subject
 import com.qarena.android.data.repository.SubjectRepository
 import kotlinx.coroutines.launch
 
@@ -13,7 +13,7 @@ class SubjectsViewModel : ViewModel() {
 
     private val subjectRepository = SubjectRepository()
 
-    var subjects by mutableStateOf<List<SubjectResponse>>(emptyList())
+    var subjects by mutableStateOf<List<Subject>>(emptyList())
         private set
 
     var isLoading by mutableStateOf(false)

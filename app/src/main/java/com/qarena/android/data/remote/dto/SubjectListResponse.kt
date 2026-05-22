@@ -3,7 +3,13 @@ package com.qarena.android.data.remote.dto
 import com.google.gson.annotations.SerializedName
 
 data class SubjectListResponse(
-    val subjects: List<SubjectResponse> = emptyList(),
+    // New hardened API prefers `items`.
+    val success: Boolean? = null,
+    val items: List<SubjectDto>? = null,
+
+    // Legacy field kept for temporary fallback.
+    val subjects: List<SubjectDto>? = null,
+
     val total: Int? = null,
 
     @SerializedName("status_filter")

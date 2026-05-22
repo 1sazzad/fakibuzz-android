@@ -18,5 +18,14 @@ data class SubjectResponse(
     @SerializedName("department_id")
     val departmentId: Int? = null,
 
+    @SerializedName("academic_level")
+    val academicLevel: String? = null,
+
+    @SerializedName("group")
+    val group: String? = null,
+
+    @SerializedName("supported_paper_types")
+    val supportedPaperTypes: List<String>? = null,
+
     val status: String? = null
 )
