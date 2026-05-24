@@ -10,6 +10,7 @@ import com.qarena.android.core.session.SessionManager
 import com.qarena.android.core.session.TokenStorage
 import com.qarena.android.core.session.isProfileComplete
 import com.qarena.android.data.repository.AuthRepository
+import com.qarena.android.util.AcademicProfile
 import kotlinx.coroutines.launch
 
 sealed interface StartupRouteState {
@@ -49,7 +50,12 @@ class SplashViewModel(
                         token = token,
                         email = user.email,
                         role = user.role,
-                        userId = user.id
+                        userId = user.id,
+                        academicLevel = AcademicProfile.resolveAcademicLevel(user),
+                        universityId = user.universityId,
+                        departmentId = user.departmentId,
+                        curriculum = user.curriculum,
+                        streamGroup = user.streamGroup
                     )
 
                     startupRouteState = if (user.isProfileComplete) {

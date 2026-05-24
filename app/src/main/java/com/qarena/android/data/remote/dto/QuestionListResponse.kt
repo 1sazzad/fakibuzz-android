@@ -3,21 +3,35 @@ package com.qarena.android.data.remote.dto
 import com.google.gson.annotations.SerializedName
 
 data class QuestionListResponse(
-    @SerializedName("subject_id")
-    val subjectId: Int? = null,
+    @SerializedName("items")
+    val items: List<QuestionDto> = emptyList(),
 
-    @SerializedName("subject_code")
-    val subjectCode: String? = null,
+    @SerializedName("questions")
+    val questions: List<QuestionDto> = emptyList(),
 
-    val questions: List<QuestionResponse>? = emptyList(),
+    @SerializedName("results")
+    val results: List<QuestionDto> = emptyList(),
+
+    @SerializedName("data")
+    val data: List<QuestionDto> = emptyList(),
+
+    @SerializedName("total")
     val total: Int? = null,
 
-    @SerializedName("total_pages")
-    val totalPages: Int? = null,
+    @SerializedName("count")
+    val count: Int? = null
+) {
+    fun questionList(): List<QuestionDto> {
+        return when {
+            items.isNotEmpty() -> items
+            questions.isNotEmpty() -> questions
+            results.isNotEmpty() -> results
+            data.isNotEmpty() -> data
+            else -> emptyList()
+        }
+    }
 
-    @SerializedName("current_page")
-    val currentPage: Int? = null,
-
-    val page: Int? = null,
-    val limit: Int? = null
-)
+    fun totalCount(): Int {
+        return total ?: count ?: questionList().size
+    }
+}

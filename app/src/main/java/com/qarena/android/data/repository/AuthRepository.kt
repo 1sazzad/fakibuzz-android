@@ -32,10 +32,12 @@ class AuthRepository(
                 Result.success(body)
             } else if (!response.isSuccessful) {
                 val error = ApiErrorParser.parseErrorBody(response.errorBody()?.string())
+                val resolvedCode = ApiErrorParser.resolvedCode(error)
                 Result.failure(
                     ApiException(
-                        message = ApiErrorParser.messageForCode(error.code, error.message),
-                        code = error.code,
+                        message = ApiErrorParser.messageForCode(resolvedCode, error.message)
+                            .let { fallback -> ApiErrorParser.messageForHttpStatus(response.code(), fallback) },
+                        code = resolvedCode,
                         field = error.field
                     )
                 )
@@ -127,6 +129,7 @@ class AuthRepository(
                 Result.success(body)
             } else {
                 val error = ApiErrorParser.parseErrorBody(response.errorBody()?.string())
+                val resolvedCode = ApiErrorParser.resolvedCode(error)
                 val fallback = if (response.code() >= 500) {
                     "Server error. Please try again later."
                 } else {
@@ -134,8 +137,9 @@ class AuthRepository(
                 }
                 Result.failure(
                     ApiException(
-                        message = ApiErrorParser.messageForLoginCode(error.code, fallback),
-                        code = error.code,
+                        message = ApiErrorParser.messageForLoginCode(resolvedCode, fallback)
+                            .let { parsed -> ApiErrorParser.messageForHttpStatus(response.code(), parsed) },
+                        code = resolvedCode,
                         field = error.field
                     )
                 )
@@ -163,10 +167,12 @@ class AuthRepository(
             Result.success(response)
         } catch (exception: HttpException) {
             val error = ApiErrorParser.parseErrorBody(exception.response()?.errorBody()?.string())
+            val resolvedCode = ApiErrorParser.resolvedCode(error)
             Result.failure(
                 ApiException(
-                    message = ApiErrorParser.messageForCode(error.code, error.message),
-                    code = error.code,
+                    message = ApiErrorParser.messageForCode(resolvedCode, error.message)
+                        .let { fallback -> ApiErrorParser.messageForHttpStatus(exception.code(), fallback) },
+                    code = resolvedCode,
                     field = error.field
                 )
             )
@@ -187,10 +193,12 @@ class AuthRepository(
             Result.success(response)
         } catch (exception: HttpException) {
             val error = ApiErrorParser.parseErrorBody(exception.response()?.errorBody()?.string())
+            val resolvedCode = ApiErrorParser.resolvedCode(error)
             Result.failure(
                 ApiException(
-                    message = ApiErrorParser.messageForCode(error.code, error.message),
-                    code = error.code,
+                    message = ApiErrorParser.messageForCode(resolvedCode, error.message)
+                        .let { fallback -> ApiErrorParser.messageForHttpStatus(exception.code(), fallback) },
+                    code = resolvedCode,
                     field = error.field
                 )
             )

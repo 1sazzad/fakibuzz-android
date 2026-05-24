@@ -7,7 +7,7 @@ data class SubQuestion(
     @SerializedName("label")
     val label: String? = null,
 
-    @SerializedName("question_text")
+    @SerializedName(value = "question_text", alternate = ["text", "question"])
     val questionText: String? = null,
 
     @SerializedName("options")
@@ -16,6 +16,7 @@ data class SubQuestion(
     @SerializedName("correct_answer")
     val correctAnswer: String? = null,
 
+    @SerializedName(value = "marks", alternate = ["question_marks", "total_marks"])
     val marks: Double? = null,
 
     @SerializedName("answer_hint")
@@ -26,6 +27,15 @@ data class SubQuestion(
 
     @SerializedName("diagram_required")
     val diagramRequired: Boolean? = null,
+
+    @SerializedName("diagram_type")
+    val diagramType: String? = null,
+
+    @SerializedName("diagram_svg")
+    val diagramSvg: String? = null,
+
+    @SerializedName("diagram_url")
+    val diagramUrl: String? = null,
 
     @SerializedName("diagram_reference")
     val diagramReference: String? = null,

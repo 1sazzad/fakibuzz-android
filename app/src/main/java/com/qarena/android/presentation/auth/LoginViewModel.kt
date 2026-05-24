@@ -11,6 +11,7 @@ import com.qarena.android.core.session.TokenStorage
 import com.qarena.android.core.session.isProfileComplete
 import com.qarena.android.data.remote.dto.UserResponse
 import com.qarena.android.data.repository.AuthRepository
+import com.qarena.android.util.AcademicProfile
 import kotlinx.coroutines.launch
 
 sealed interface LoginRouteState {
@@ -129,7 +130,12 @@ class LoginViewModel(
                                     token = token,
                                     email = userResponse.email,
                                     role = userResponse.role,
-                                    userId = userResponse.id
+                                    userId = userResponse.id,
+                                    academicLevel = AcademicProfile.resolveAcademicLevel(userResponse),
+                                    universityId = userResponse.universityId,
+                                    departmentId = userResponse.departmentId,
+                                    curriculum = userResponse.curriculum,
+                                    streamGroup = userResponse.streamGroup
                                 )
                                 currentUser = userResponse
                                 loginSuccess = true

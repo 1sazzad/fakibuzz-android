@@ -2,9 +2,11 @@ package com.qarena.android.data.repository
 
 import com.qarena.android.core.network.RetrofitClient
 import com.qarena.android.core.session.SessionManager
+import com.qarena.android.data.remote.ApiErrorParser
 import com.qarena.android.data.remote.api.SearchApi
 import com.qarena.android.data.remote.dto.SearchRequest
 import com.qarena.android.data.remote.dto.SearchResponse
+import retrofit2.HttpException
 
 class SearchRepository {
 
@@ -23,16 +25,43 @@ class SearchRepository {
         }
 
         return try {
+            val academicLevel = backendAcademicLevel(SessionManager.userAcademicLevel)
             val response = searchApi.search(
                 authorization = "Bearer $token",
                 searchRequest = request.copy(
                     query = trimmedQuery,
-                    subjectCode = request.subjectCode?.trim()?.takeIf { it.isNotBlank() }
+                    subjectCode = request.subjectCode?.trim()?.takeIf { it.isNotBlank() },
+                    academicLevel = request.academicLevel ?: academicLevel,
+                    paperType = request.paperType?.trim()?.takeIf { it.isNotBlank() },
+                    universityId = request.universityId ?: SessionManager.userUniversityId,
+                    departmentId = request.departmentId ?: SessionManager.userDepartmentId
                 )
             )
             Result.success(response)
         } catch (exception: Exception) {
-            Result.failure(exception)
+            Result.failure(Exception(exception.toReadableMessage()))
+        }
+    }
+
+    private fun Exception.toReadableMessage(): String {
+        if (this is HttpException) {
+            return ApiErrorParser.messageForHttpStatus(
+                statusCode = code(),
+                fallback = message()
+                    ?.takeIf { it.isNotBlank() }
+                    ?: "Search failed"
+            )
+        }
+
+        return ApiErrorParser.messageForThrowable(this)
+    }
+
+    private fun backendAcademicLevel(value: String?): String? {
+        return when (value?.trim()?.lowercase()) {
+            "ssc" -> "SSC"
+            "hsc" -> "HSC"
+            "university" -> "UNIVERSITY"
+            else -> value?.trim()?.takeIf { it.isNotBlank() }
         }
     }
 }

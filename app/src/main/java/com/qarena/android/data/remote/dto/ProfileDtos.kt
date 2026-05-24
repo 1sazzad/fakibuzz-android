@@ -12,6 +12,15 @@ data class ProfileUpdateRequest(
     @SerializedName("institution_type")
     val institutionType: String? = null,
 
+    @SerializedName("institution_name")
+    val institutionName: String? = null,
+
+    @SerializedName("school_name")
+    val schoolName: String? = null,
+
+    @SerializedName("college_name")
+    val collegeName: String? = null,
+
     @SerializedName("curriculum")
     val curriculum: String? = null,
 

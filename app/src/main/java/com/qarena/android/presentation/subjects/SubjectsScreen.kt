@@ -1,36 +1,26 @@
 package com.qarena.android.presentation.subjects
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.qarena.android.model.Subject
-import com.qarena.android.model.displaySubtitle
-import com.qarena.android.util.SubjectLookups
+import com.qarena.android.ui.components.QArenaEmptyState
+import com.qarena.android.ui.components.QArenaErrorState
+import com.qarena.android.ui.components.QArenaLoadingState
+import com.qarena.android.ui.components.SubjectCard
 import kotlinx.coroutines.delay
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SubjectsScreen(
     onSubjectClick: (String) -> Unit,
@@ -55,46 +45,54 @@ fun SubjectsScreen(
         subjectSearchViewModel.searchSubjects(searchQuery)
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Subjects",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
+                .padding(padding)
+                .padding(horizontal = 20.dp)
         ) {
-            Text(
-                text = "Subjects",
-                fontSize = 30.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = {
-                    Text(text = "Search subjects")
-                },
-                singleLine = true,
+                placeholder = { Text(text = "Search subjects by name or code...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 trailingIcon = {
                     if (searchQuery.isNotBlank()) {
-                        TextButton(
+                        IconButton(
                             onClick = {
                                 searchQuery = ""
                                 subjectSearchViewModel.clearSearch()
                             }
                         ) {
-                            Text(text = "Clear")
+                            Icon(Icons.Default.Clear, contentDescription = null)
                         }
                     }
-                }
+                },
+                shape = MaterialTheme.shapes.medium,
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                )
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             if (isSearching) {
                 SearchResultsContent(
@@ -106,7 +104,8 @@ fun SubjectsScreen(
                     isLoading = subjectsViewModel.isLoading,
                     errorMessage = subjectsViewModel.errorMessage,
                     subjects = subjectsViewModel.subjects,
-                    onSubjectClick = onSubjectClick
+                    onSubjectClick = onSubjectClick,
+                    onRetry = { subjectsViewModel.loadSubjects() }
                 )
             }
         }
@@ -121,17 +120,20 @@ private fun SearchResultsContent(
     when (searchState) {
         SubjectSearchUiState.Idle,
         SubjectSearchUiState.Loading -> {
-            Text(text = "Searching subjects...")
+            QArenaLoadingState(label = "Searching...")
         }
 
         SubjectSearchUiState.Empty -> {
-            Text(text = "No matching subjects found")
+            QArenaEmptyState(
+                title = "No subjects found",
+                description = "We couldn't find any subjects matching your search."
+            )
         }
 
         is SubjectSearchUiState.Error -> {
-            Text(
-                text = searchState.message,
-                color = MaterialTheme.colorScheme.error
+            QArenaErrorState(
+                message = searchState.message,
+                onRetry = { /* Search retry handled by LaunchedEffect on query change */ }
             )
         }
 
@@ -149,22 +151,26 @@ private fun SubjectListContent(
     isLoading: Boolean,
     errorMessage: String?,
     subjects: List<Subject>,
-    onSubjectClick: (String) -> Unit
+    onSubjectClick: (String) -> Unit,
+    onRetry: () -> Unit
 ) {
     if (isLoading) {
-        Text(text = "Loading subjects...")
+        QArenaLoadingState(label = "Loading your curriculum...")
     } else if (errorMessage != null) {
-        Text(
-            text = errorMessage,
-            color = MaterialTheme.colorScheme.error
+        QArenaErrorState(
+            message = errorMessage,
+            onRetry = onRetry
         )
     } else if (subjects.isEmpty()) {
-        Text(text = "No subjects found")
+        QArenaEmptyState(
+            title = "Your library is empty",
+            description = "Complete your academic profile to see available subjects."
+        )
     } else {
-            SubjectList(
-                subjects = subjects,
-                onSubjectClick = onSubjectClick
-            )
+        SubjectList(
+            subjects = subjects,
+            onSubjectClick = onSubjectClick
+        )
     }
 }
 
@@ -173,65 +179,18 @@ private fun SubjectList(
     subjects: List<Subject>,
     onSubjectClick: (String) -> Unit
 ) {
-    LazyColumn {
+    LazyColumn(
+        contentPadding = PaddingValues(bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
         items(subjects) { subject ->
             SubjectCard(
                 subject = subject,
-                onSubjectClick = onSubjectClick
-            )
-        }
-    }
-}
-
-@Composable
-private fun SubjectCard(
-    subject: Subject,
-    onSubjectClick: (String) -> Unit
-) {
-    val subjectCode = subject.subjectCode
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(
-                enabled = !subjectCode.isNullOrBlank()
-            ) {
-                if (!subjectCode.isNullOrBlank()) {
-                    onSubjectClick(subjectCode)
+                onClick = {
+                    if (subject.subjectCode.isNotBlank()) {
+                        onSubjectClick(subject.subjectCode)
+                    }
                 }
-            }
-            .padding(bottom = 12.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = subject.subjectName.ifBlank { "Unnamed subject" },
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = subject.subjectCode.ifBlank { "No code" },
-                fontSize = 14.sp
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            subject.displaySubtitle()?.let { subtitle ->
-                Text(
-                    text = subtitle,
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-            }
-
-            Text(
-                text = SubjectLookups.formatLabel(subject),
-                fontSize = 14.sp
             )
         }
     }

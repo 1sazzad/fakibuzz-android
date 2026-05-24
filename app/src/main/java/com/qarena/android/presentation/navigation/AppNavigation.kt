@@ -3,6 +3,7 @@ package com.qarena.android.presentation.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.SavedStateHandle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -18,6 +19,7 @@ import com.qarena.android.presentation.auth.RegisterScreen
 import com.qarena.android.presentation.auth.ResetPasswordScreen
 import com.qarena.android.presentation.feedback.FeedbackScreen
 import com.qarena.android.presentation.home.HomeScreen
+import com.qarena.android.presentation.common.AnswerPayload
 import com.qarena.android.presentation.profile.ProfileScreen
 import com.qarena.android.presentation.profile.ProfileSetupScreen
 import com.qarena.android.presentation.questions.QuestionsScreen
@@ -28,6 +30,7 @@ import com.qarena.android.presentation.subjects.SubjectOverviewScreen
 import com.qarena.android.presentation.subjects.SubjectPredictionsScreen
 import com.qarena.android.presentation.subjects.SubjectSuggestionsScreen
 import com.qarena.android.presentation.subjects.SubjectsScreen
+import com.google.gson.Gson
 
 @Composable
 fun AppNavigation() {
@@ -221,17 +224,12 @@ fun AppNavigation() {
                     onOpenSubjectOverviewClick = { subjectCode ->
                         navController.navigate(Screen.SubjectOverview.createRoute(subjectCode))
                     },
-                    onGetAnswerClick = { questionId, questionText, subjectCode, marks ->
-                        navController.currentBackStackEntry
-                            ?.savedStateHandle
-                            ?.set(ANSWER_QUESTION_ID_KEY, questionId)
-                        navController.currentBackStackEntry
-                            ?.savedStateHandle
-                            ?.set(ANSWER_QUESTION_TEXT_KEY, questionText)
-                        navController.currentBackStackEntry
-                            ?.savedStateHandle
-                            ?.set(ANSWER_MARKS_KEY, marks)
-                        navController.navigate(Screen.Answer.createRoute(subjectCode))
+                    onGetAnswerClick = { answerPayload ->
+                        saveAnswerPayload(
+                            savedStateHandle = navController.currentBackStackEntry?.savedStateHandle,
+                            answerPayload = answerPayload
+                        )
+                        navController.navigate(Screen.Answer.createRoute(answerPayload.subjectCode))
                     }
                 )
             }
@@ -279,6 +277,13 @@ fun AppNavigation() {
                     },
                     onOpenPredictionsClick = { selectedSubjectCode ->
                         navController.navigate(Screen.Predictions.createRoute(selectedSubjectCode))
+                    },
+                    onGetAnswerClick = { answerPayload ->
+                        saveAnswerPayload(
+                            savedStateHandle = navController.currentBackStackEntry?.savedStateHandle,
+                            answerPayload = answerPayload
+                        )
+                        navController.navigate(Screen.Answer.createRoute(answerPayload.subjectCode.ifBlank { subjectCode }))
                     }
                 )
             }
@@ -304,17 +309,12 @@ fun AppNavigation() {
             ) {
                 SubjectPredictionsScreen(
                     subjectCode = subjectCode,
-                    onGetAnswerClick = { questionId, questionText, marks ->
-                        navController.currentBackStackEntry
-                            ?.savedStateHandle
-                            ?.set(ANSWER_QUESTION_ID_KEY, questionId)
-                        navController.currentBackStackEntry
-                            ?.savedStateHandle
-                            ?.set(ANSWER_QUESTION_TEXT_KEY, questionText)
-                        navController.currentBackStackEntry
-                            ?.savedStateHandle
-                            ?.set(ANSWER_MARKS_KEY, marks)
-                        navController.navigate(Screen.Answer.createRoute(subjectCode))
+                    onGetAnswerClick = { answerPayload ->
+                        saveAnswerPayload(
+                            savedStateHandle = navController.currentBackStackEntry?.savedStateHandle,
+                            answerPayload = answerPayload
+                        )
+                        navController.navigate(Screen.Answer.createRoute(answerPayload.subjectCode.ifBlank { subjectCode }))
                     }
                 )
             }
@@ -329,17 +329,12 @@ fun AppNavigation() {
             ) {
                 SubjectSuggestionsScreen(
                     subjectCode = subjectCode,
-                    onGetAnswerClick = { questionId, questionText, marks ->
-                        navController.currentBackStackEntry
-                            ?.savedStateHandle
-                            ?.set(ANSWER_QUESTION_ID_KEY, questionId)
-                        navController.currentBackStackEntry
-                            ?.savedStateHandle
-                            ?.set(ANSWER_QUESTION_TEXT_KEY, questionText)
-                        navController.currentBackStackEntry
-                            ?.savedStateHandle
-                            ?.set(ANSWER_MARKS_KEY, marks)
-                        navController.navigate(Screen.Answer.createRoute(subjectCode))
+                    onGetAnswerClick = { answerPayload ->
+                        saveAnswerPayload(
+                            savedStateHandle = navController.currentBackStackEntry?.savedStateHandle,
+                            answerPayload = answerPayload
+                        )
+                        navController.navigate(Screen.Answer.createRoute(answerPayload.subjectCode.ifBlank { subjectCode }))
                     }
                 )
             }
@@ -354,17 +349,12 @@ fun AppNavigation() {
             ) {
                 QuestionsScreen(
                     subjectCode = subjectCode,
-                    onGetAnswerClick = { questionId, questionText, marks ->
-                        navController.currentBackStackEntry
-                            ?.savedStateHandle
-                            ?.set(ANSWER_QUESTION_ID_KEY, questionId)
-                        navController.currentBackStackEntry
-                            ?.savedStateHandle
-                            ?.set(ANSWER_QUESTION_TEXT_KEY, questionText)
-                        navController.currentBackStackEntry
-                            ?.savedStateHandle
-                            ?.set(ANSWER_MARKS_KEY, marks)
-                        navController.navigate(Screen.Answer.createRoute(subjectCode))
+                    onGetAnswerClick = { answerPayload ->
+                        saveAnswerPayload(
+                            savedStateHandle = navController.currentBackStackEntry?.savedStateHandle,
+                            answerPayload = answerPayload
+                        )
+                        navController.navigate(Screen.Answer.createRoute(answerPayload.subjectCode.ifBlank { subjectCode }))
                     }
                 )
             }
@@ -373,9 +363,7 @@ fun AppNavigation() {
         composable(route = Screen.Answer.route) { navBackStackEntry ->
             val subjectCode = navBackStackEntry.arguments?.getString("subjectCode") ?: ""
             val savedStateHandle = navController.previousBackStackEntry?.savedStateHandle
-            val questionId = savedStateHandle?.get<Int?>(ANSWER_QUESTION_ID_KEY)
-            val questionText = savedStateHandle?.get<String>(ANSWER_QUESTION_TEXT_KEY).orEmpty()
-            val marks = savedStateHandle?.get<Int?>(ANSWER_MARKS_KEY)
+            val answerPayload = savedStateHandle?.toAnswerPayload(subjectCode)
 
             ProtectedRoute(
                 navController = navController,
@@ -383,9 +371,7 @@ fun AppNavigation() {
             ) {
                 AnswerScreen(
                     subjectCode = subjectCode,
-                    questionId = questionId,
-                    questionText = questionText,
-                    marks = marks
+                    answerPayload = answerPayload ?: AnswerPayload(subjectCode = subjectCode)
                 )
             }
         }
@@ -412,6 +398,24 @@ private fun ProtectedRoute(
     }
 }
 
-private const val ANSWER_QUESTION_ID_KEY = "answer_question_id"
-private const val ANSWER_QUESTION_TEXT_KEY = "answer_question_text"
-private const val ANSWER_MARKS_KEY = "answer_marks"
+private const val ANSWER_PAYLOAD_KEY = "answer_payload"
+
+private val answerPayloadGson = Gson()
+
+private fun saveAnswerPayload(
+    savedStateHandle: SavedStateHandle?,
+    answerPayload: AnswerPayload
+) {
+    savedStateHandle?.set(ANSWER_PAYLOAD_KEY, answerPayloadGson.toJson(answerPayload))
+}
+
+private fun SavedStateHandle.toAnswerPayload(defaultSubjectCode: String): AnswerPayload? {
+    val json = get<String>(ANSWER_PAYLOAD_KEY) ?: return null
+    val payload = runCatching {
+        answerPayloadGson.fromJson(json, AnswerPayload::class.java)
+    }.getOrNull() ?: return null
+
+    return payload.copy(
+        subjectCode = payload.subjectCode.ifBlank { defaultSubjectCode }
+    )
+}

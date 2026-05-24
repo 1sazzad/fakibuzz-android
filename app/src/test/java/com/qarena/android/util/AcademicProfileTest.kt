@@ -26,7 +26,7 @@ class AcademicProfileTest {
             )
         )
 
-        assertTrue(json.contains("\"academic_level\":\"university\""))
+        assertTrue(json.contains("\"academic_level\":\"UNIVERSITY\""))
         assertTrue(json.contains("\"institution_type\":\"university\""))
         assertTrue(json.contains("\"curriculum\":\"university_specific\""))
         assertTrue(json.contains("\"university_id\":1"))
@@ -54,11 +54,11 @@ class AcademicProfileTest {
             )
         )
 
-        assertTrue(json.contains("\"academic_level\":\"ssc\""))
+        assertTrue(json.contains("\"academic_level\":\"SSC\""))
         assertTrue(json.contains("\"institution_type\":\"school\""))
         assertTrue(json.contains("\"curriculum\":\"national\""))
         assertTrue(json.contains("\"stream_group\":\"science\""))
-        assertTrue(json.contains("\"class_level\":\"10\""))
+        assertFalse(json.contains("class_level"))
         assertFalse(json.contains("university_id"))
         assertFalse(json.contains("department_id"))
         assertFalse(json.contains("program"))
@@ -82,11 +82,11 @@ class AcademicProfileTest {
             )
         )
 
-        assertTrue(json.contains("\"academic_level\":\"hsc\""))
+        assertTrue(json.contains("\"academic_level\":\"HSC\""))
         assertTrue(json.contains("\"institution_type\":\"college\""))
         assertTrue(json.contains("\"curriculum\":\"national\""))
         assertTrue(json.contains("\"stream_group\":\"business_studies\""))
-        assertTrue(json.contains("\"class_level\":\"12\""))
+        assertFalse(json.contains("class_level"))
         assertFalse(json.contains("university_id"))
         assertFalse(json.contains("department_id"))
         assertFalse(json.contains("program"))
@@ -112,7 +112,7 @@ class AcademicProfileTest {
                     academicLevel = AcademicProfile.ACADEMIC_LEVEL_SSC,
                     curriculum = AcademicProfile.CURRICULUM_NATIONAL,
                     streamGroup = AcademicProfile.STREAM_GROUP_SCIENCE,
-                    classLevel = "10"
+                    classLevel = null
                 )
             )
         )
@@ -123,7 +123,7 @@ class AcademicProfileTest {
                     academicLevel = AcademicProfile.ACADEMIC_LEVEL_HSC,
                     curriculum = AcademicProfile.CURRICULUM_NATIONAL,
                     streamGroup = AcademicProfile.STREAM_GROUP_BUSINESS_STUDIES,
-                    classLevel = "12"
+                    classLevel = null
                 )
             )
         )
@@ -133,7 +133,7 @@ class AcademicProfileTest {
                 UserResponse(
                     academicLevel = AcademicProfile.ACADEMIC_LEVEL_SSC,
                     curriculum = AcademicProfile.CURRICULUM_NATIONAL,
-                    streamGroup = AcademicProfile.STREAM_GROUP_SCIENCE,
+                    streamGroup = null,
                     classLevel = null
                 )
             )
@@ -160,7 +160,7 @@ class AcademicProfileTest {
         assertEquals(null, universityProfile.departmentId)
         assertEquals(AcademicProfile.CURRICULUM_NATIONAL, universityProfile.curriculum)
         assertEquals(AcademicProfile.STREAM_GROUP_SCIENCE, universityProfile.streamGroup)
-        assertEquals("10", universityProfile.classLevel)
+        assertEquals(null, universityProfile.classLevel)
         assertEquals(null, universityProfile.program)
         assertEquals(null, universityProfile.batchSession)
 

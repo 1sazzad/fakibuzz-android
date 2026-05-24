@@ -27,6 +27,8 @@ object QuestionPresentationLookups {
         formulaDisplay: String? = null,
         diagramDescription: String? = null,
         diagramReference: String? = null,
+        diagramType: String? = null,
+        diagramSvg: String? = null,
         diagramRequired: Boolean? = null,
         mathBlocks: JsonElement? = null
     ): String {
@@ -79,6 +81,13 @@ object QuestionPresentationLookups {
                 lines.add("Diagram reference: $reference")
             }
 
+            val subQuestionHasSvg = subQuestion.diagramType?.trim()?.equals("svg", ignoreCase = true) == true &&
+                !subQuestion.diagramSvg.isNullOrBlank()
+
+            if (subQuestionHasSvg && subQuestion.diagramDescription.isNullOrBlank()) {
+                lines.add("Diagram: SVG provided")
+            }
+
             subQuestion.mathBlocks?.takeIf { !it.isJsonNull }?.let { lines.add("Math blocks: ${formatJsonContent(it)}") }
 
             if (subQuestion.diagramRequired == true) {
@@ -93,6 +102,12 @@ object QuestionPresentationLookups {
 
         diagramDescription?.trim()?.takeIf { it.isNotBlank() }?.let { lines.add("Diagram: $it") }
         diagramReference?.trim()?.takeIf { it.isNotBlank() }?.let { lines.add("Diagram reference: $it") }
+
+        val hasSvgDiagram = diagramType?.trim()?.equals("svg", ignoreCase = true) == true && !diagramSvg.isNullOrBlank()
+
+        if (hasSvgDiagram && diagramDescription.isNullOrBlank()) {
+            lines.add("Diagram: SVG provided")
+        }
 
         if (diagramRequired == true) {
             lines.add("Diagram required")

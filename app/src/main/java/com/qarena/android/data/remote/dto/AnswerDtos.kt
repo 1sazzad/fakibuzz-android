@@ -13,6 +13,51 @@ data class GenerateAnswerRequest(
     @SerializedName("subject_code")
     val subjectCode: String? = null,
 
+    @SerializedName("academic_level")
+    val academicLevel: String? = null,
+
+    @SerializedName("paper_type")
+    val paperType: String? = null,
+
+    val marks: Int? = null,
+    val topic: String? = null,
+
+    @SerializedName("answer_type")
+    val answerType: String? = null,
+
+    @SerializedName("university_id")
+    val universityId: Int? = null,
+
+    @SerializedName("department_id")
+    val departmentId: Int? = null,
+
+    @SerializedName("formula_latex")
+    val formulaLatex: String? = null,
+
+    @SerializedName("formula_display")
+    val formulaDisplay: String? = null,
+
+    @SerializedName("diagram_required")
+    val diagramRequired: Boolean? = null,
+
+    @SerializedName("diagram_type")
+    val diagramType: String? = null,
+
+    @SerializedName("diagram_svg")
+    val diagramSvg: String? = null,
+
+    @SerializedName("diagram_url")
+    val diagramUrl: String? = null,
+
+    @SerializedName("diagram_reference")
+    val diagramReference: String? = null,
+
+    @SerializedName("diagram_description")
+    val diagramDescription: String? = null,
+
+    @SerializedName("math_blocks")
+    val mathBlocks: JsonElement? = null,
+
     val prompt: String? = null
 )
 

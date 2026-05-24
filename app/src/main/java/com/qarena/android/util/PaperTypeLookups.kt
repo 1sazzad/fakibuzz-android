@@ -7,6 +7,8 @@ object PaperTypeLookups {
 
     private val validPaperTypes = setOf(CQ, MCQ, WRITTEN)
 
+    fun allPaperTypes(): List<String> = listOf(CQ, MCQ, WRITTEN)
+
     fun normalizePaperType(value: String?): String? {
         return value
             ?.trim()

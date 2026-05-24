@@ -22,15 +22,26 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.qarena.android.core.analytics.AnalyticsTracker
 import com.qarena.android.model.Suggestion
+import com.qarena.android.model.displayLabel
+import com.qarena.android.model.displaySubtitle
+import com.qarena.android.presentation.common.AnswerPayload
+import com.qarena.android.presentation.common.DiagramInfo
+import com.qarena.android.presentation.common.DiagramRenderer
+import com.qarena.android.presentation.common.toDiagramInfo
+import com.qarena.android.presentation.subjects.PaperTypeSelector
+import com.qarena.android.util.QuestionPresentationLookups
 import com.qarena.android.util.SuggestionLookups
 
 @Composable
 fun SubjectPredictionsScreen(
     subjectCode: String,
-    onGetAnswerClick: (questionId: Int?, questionText: String, marks: Int?) -> Unit,
+    onGetAnswerClick: (AnswerPayload) -> Unit,
     subjectPredictionsViewModel: SubjectPredictionsViewModel = viewModel()
 ) {
     val predictionsState = subjectPredictionsViewModel.predictionsState
+    val subject = subjectPredictionsViewModel.subject
+    val supportedPaperTypes = subjectPredictionsViewModel.supportedPaperTypes
+    val selectedPaperType = subjectPredictionsViewModel.selectedPaperType
 
     LaunchedEffect(subjectCode) {
         AnalyticsTracker.trackScreen(
@@ -56,6 +67,33 @@ fun SubjectPredictionsScreen(
                 fontWeight = FontWeight.Bold
             )
 
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = subject?.displayLabel() ?: subjectCode,
+                fontSize = 16.sp
+            )
+
+            subject?.displaySubtitle()?.let { subtitle ->
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = subtitle,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (supportedPaperTypes.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                PaperTypeSelector(
+                    supportedPaperTypes = supportedPaperTypes,
+                    selectedPaperType = selectedPaperType,
+                    onPaperTypeSelected = { paperType ->
+                        subjectPredictionsViewModel.selectPaperType(subjectCode, paperType)
+                    }
+                )
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
             when (predictionsState) {
@@ -75,6 +113,7 @@ fun SubjectPredictionsScreen(
                     SubjectPredictionsContent(
                         predictions = predictionsState.predictions,
                         subjectCode = subjectCode,
+                        subjectAcademicLevel = subject?.academicLevel,
                         onGetAnswerClick = onGetAnswerClick
                     )
                 }
@@ -87,7 +126,8 @@ fun SubjectPredictionsScreen(
 private fun SubjectPredictionsContent(
     predictions: List<Suggestion>,
     subjectCode: String,
-    onGetAnswerClick: (questionId: Int?, questionText: String, marks: Int?) -> Unit
+    subjectAcademicLevel: String?,
+    onGetAnswerClick: (AnswerPayload) -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -115,6 +155,8 @@ private fun SubjectPredictionsContent(
             items(predictions) { prediction ->
                 PredictionCard(
                     prediction = prediction,
+                    subjectCode = subjectCode,
+                    subjectAcademicLevel = subjectAcademicLevel,
                     onGetAnswerClick = onGetAnswerClick
                 )
             }
@@ -125,7 +167,9 @@ private fun SubjectPredictionsContent(
 @Composable
 private fun PredictionCard(
     prediction: Suggestion,
-    onGetAnswerClick: (questionId: Int?, questionText: String, marks: Int?) -> Unit
+    subjectCode: String,
+    subjectAcademicLevel: String?,
+    onGetAnswerClick: (AnswerPayload) -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -146,6 +190,8 @@ private fun PredictionCard(
                     fontSize = 16.sp
                 )
             }
+
+            DiagramRenderer(diagramInfo = prediction.toDiagramInfo())
 
             prediction.marks?.let { marks ->
                 Spacer(modifier = Modifier.height(8.dp))
@@ -176,12 +222,37 @@ private fun PredictionCard(
             Button(
                 onClick = {
                     onGetAnswerClick(
-                        prediction.questionId,
-                        prediction.questionText,
-                        prediction.marks
+                        AnswerPayload(
+                            questionId = prediction.questionId,
+                            questionText = prediction.questionText,
+                            prompt = QuestionPresentationLookups.buildAnswerPrompt(
+                            questionText = prediction.questionText,
+                            diagramDescription = prediction.diagramDescription,
+                            diagramReference = prediction.diagramReference,
+                            diagramType = prediction.diagramType,
+                            diagramSvg = prediction.diagramSvg,
+                                diagramRequired = prediction.diagramRequired
+                            ),
+                            subjectCode = subjectCode,
+                            academicLevel = subjectAcademicLevel,
+                            paperType = prediction.paperType,
+                            topic = prediction.topic,
+                            marks = prediction.marks,
+                            formulaLatex = prediction.formulaLatex,
+                            formulaDisplay = prediction.formulaDisplay,
+                            diagramRequired = prediction.diagramRequired,
+                            diagramType = prediction.diagramType,
+                            diagramSvg = prediction.diagramSvg,
+                            diagramUrl = prediction.diagramUrl,
+                            diagramReference = prediction.diagramReference,
+                            diagramDescription = prediction.diagramDescription
+                        )
                     )
                 },
-                enabled = prediction.questionText.isNotBlank()
+                enabled = prediction.questionText.isNotBlank() ||
+                    prediction.diagramRequired == true ||
+                    !prediction.diagramSvg.isNullOrBlank() ||
+                    !prediction.diagramDescription.isNullOrBlank()
             ) {
                 Text(text = "Get Answer")
             }

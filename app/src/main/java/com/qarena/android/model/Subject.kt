@@ -4,7 +4,7 @@ import com.qarena.android.util.AcademicProfile
 import com.qarena.android.util.PaperTypeLookups
 
 data class Subject(
-    val id: Int,
+    val id: Int? = null,
     val subjectCode: String,
     val subjectName: String,
     val universityId: Int?,

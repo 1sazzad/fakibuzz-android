@@ -166,7 +166,7 @@ object AcademicProfile {
                 academicLevel = normalizedLevel,
                 curriculum = normalized(curriculum).ifBlank { defaultSyllabusCurriculum() },
                 streamGroup = normalizeStudentStreamGroup(streamGroup),
-                classLevel = normalized(classLevel).ifBlank { defaultClassLevel(normalizedLevel) },
+                classLevel = normalized(classLevel).ifBlank { null },
                 program = null,
                 batchSession = null
             )
@@ -215,7 +215,6 @@ object AcademicProfile {
             isUniversityScoped(academicLevel) && input.departmentId == null -> "Department is required"
             isSyllabusScoped(academicLevel) && input.curriculum.isNullOrBlank() -> "Curriculum is required"
             isSyllabusScoped(academicLevel) && input.streamGroup.isNullOrBlank() -> "Group is required"
-            isSyllabusScoped(academicLevel) && input.classLevel.isNullOrBlank() -> "Class level is required"
             !input.termsAccepted -> "You must accept the terms to register"
             else -> null
         }
@@ -239,7 +238,6 @@ object AcademicProfile {
             isUniversityScoped(normalizedInput.academicLevel) && normalizedInput.departmentId == null -> "Department is required"
             isSyllabusScoped(normalizedInput.academicLevel) && normalizedInput.curriculum.isNullOrBlank() -> "Curriculum is required"
             isSyllabusScoped(normalizedInput.academicLevel) && normalizedInput.streamGroup.isNullOrBlank() -> "Group is required"
-            isSyllabusScoped(normalizedInput.academicLevel) && normalizedInput.classLevel.isNullOrBlank() -> "Class level is required"
             else -> null
         }
     }
@@ -268,7 +266,7 @@ object AcademicProfile {
                 departmentId = null,
                 curriculum = defaultSyllabusCurriculum(),
                 streamGroup = normalizeStudentStreamGroup(profile.streamGroup) ?: STREAM_GROUP_SCIENCE,
-                classLevel = normalized(profile.classLevel).ifBlank { defaultClassLevel(normalizedLevel) },
+                classLevel = null,
                 program = null,
                 batchSession = null
             )
@@ -317,8 +315,7 @@ object AcademicProfile {
 
             academicLevel in setOf(ACADEMIC_LEVEL_SSC, ACADEMIC_LEVEL_HSC) -> {
                 !user.curriculum.isNullOrBlank() &&
-                    !normalizeStudentStreamGroup(user.streamGroup).isNullOrBlank() &&
-                    !user.classLevel.isNullOrBlank()
+                    !normalizeStudentStreamGroup(user.streamGroup).isNullOrBlank()
             }
 
             academicLevel.isBlank() -> {
@@ -329,8 +326,7 @@ object AcademicProfile {
 
                     ACADEMIC_LEVEL_SSC, ACADEMIC_LEVEL_HSC -> {
                         !user.curriculum.isNullOrBlank() &&
-                            !normalizeStudentStreamGroup(user.streamGroup).isNullOrBlank() &&
-                            !user.classLevel.isNullOrBlank()
+                            !normalizeStudentStreamGroup(user.streamGroup).isNullOrBlank()
                     }
 
                     else -> false
@@ -374,7 +370,7 @@ object AcademicProfile {
             email = email.trim(),
             phone_number = phone.trim(),
             password = password,
-            academic_level = normalizedInput.academicLevel.ifBlank { null },
+            academic_level = backendAcademicLevel(normalizedInput.academicLevel),
             institution_type = institutionTypeFor(normalizedInput.academicLevel),
             curriculum = when {
                 universityScoped -> CURRICULUM_UNIVERSITY_SPECIFIC
@@ -382,7 +378,7 @@ object AcademicProfile {
                 else -> normalizedInput.curriculum
             },
             stream_group = if (syllabusScoped) normalizedInput.streamGroup else null,
-            class_level = if (syllabusScoped) normalizedInput.classLevel else null,
+            class_level = null,
             university_id = if (universityScoped) normalizedInput.universityId else null,
             department_id = if (universityScoped) normalizedInput.departmentId else null,
             program = if (universityScoped) normalizedInput.program else null,
@@ -417,7 +413,7 @@ object AcademicProfile {
 
         return ProfileUpdateRequest(
             fullName = fullName?.trim()?.takeIf { it.isNotBlank() },
-            academicLevel = normalizedInput.academicLevel.ifBlank { null },
+            academicLevel = backendAcademicLevel(normalizedInput.academicLevel),
             institutionType = institutionTypeFor(normalizedInput.academicLevel),
             curriculum = when {
                 universityScoped -> CURRICULUM_UNIVERSITY_SPECIFIC
@@ -425,7 +421,7 @@ object AcademicProfile {
                 else -> normalizedInput.curriculum
             },
             streamGroup = if (syllabusScoped) normalizedInput.streamGroup else null,
-            classLevel = if (syllabusScoped) normalizedInput.classLevel else null,
+            classLevel = null,
             universityId = if (universityScoped) normalizedInput.universityId else null,
             departmentId = if (universityScoped) normalizedInput.departmentId else null,
             program = if (universityScoped) normalizedInput.program else null,
@@ -464,6 +460,15 @@ object AcademicProfile {
 
     private fun normalized(value: String?): String {
         return value?.trim()?.lowercase().orEmpty()
+    }
+
+    private fun backendAcademicLevel(value: String?): String? {
+        return when (normalized(value)) {
+            ACADEMIC_LEVEL_UNIVERSITY -> "UNIVERSITY"
+            ACADEMIC_LEVEL_SSC -> "SSC"
+            ACADEMIC_LEVEL_HSC -> "HSC"
+            else -> value?.trim()?.takeIf { it.isNotBlank() }
+        }
     }
 
     fun normalizeStudentStreamGroup(value: String?): String? {

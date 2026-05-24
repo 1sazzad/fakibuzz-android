@@ -51,7 +51,6 @@ fun ProfileScreen(
             path = "/android/profile"
         )
         profileViewModel.loadProfile()
-        profileViewModel.loadUniversities()
     }
 
     Surface(
@@ -167,13 +166,6 @@ fun ProfileScreen(
                             onSelected = { profileViewModel.setStreamGroup(it) }
                         )
 
-                        DropdownField(
-                            label = "Class level",
-                            selectedText = AcademicProfile.classLevelLabel(profileViewModel.selectedClassLevel),
-                            options = AcademicProfile.classLevelOptions(profileViewModel.selectedAcademicLevel),
-                            optionLabel = { AcademicProfile.classLevelLabel(it) },
-                            onSelected = { profileViewModel.setClassLevel(it) }
-                        )
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -203,12 +195,18 @@ fun ProfileScreen(
 private fun ProfileDetails(
     user: UserResponse
 ) {
+    val academicLevel = AcademicProfile.resolveAcademicLevel(user)
+
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             ProfileLine(label = "Full name", value = user.fullName ?: "Not set")
             ProfileLine(label = "Email", value = user.email ?: "Not available")
             ProfileLine(label = "Role", value = user.role ?: "Not available")
             ProfileLine(label = "User ID", value = user.id?.toString() ?: "Not available")
+            ProfileLine(
+                label = "Academic level",
+                value = AcademicProfile.academicLevelLabel(academicLevel).ifBlank { "Not set" }
+            )
             ProfileLine(
                 label = "Email verified",
                 value = when (user.isEmailVerified) {
@@ -217,14 +215,25 @@ private fun ProfileDetails(
                     null -> "Not available"
                 }
             )
-            ProfileLine(
-                label = "University ID",
-                value = user.universityId?.toString() ?: "Not set"
-            )
-            ProfileLine(
-                label = "Department ID",
-                value = user.departmentId?.toString() ?: "Not set"
-            )
+            if (AcademicProfile.isUniversityScoped(academicLevel)) {
+                ProfileLine(
+                    label = "University ID",
+                    value = user.universityId?.toString() ?: "Not set"
+                )
+                ProfileLine(
+                    label = "Department ID",
+                    value = user.departmentId?.toString() ?: "Not set"
+                )
+            } else {
+                ProfileLine(
+                    label = "Curriculum",
+                    value = AcademicProfile.curriculumLabel(user.curriculum).ifBlank { "Not set" }
+                )
+                ProfileLine(
+                    label = "Group",
+                    value = AcademicProfile.studentStreamGroupLabel(user.streamGroup).ifBlank { "Not set" }
+                )
+            }
         }
     }
 }

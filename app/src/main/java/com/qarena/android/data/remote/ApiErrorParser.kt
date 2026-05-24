@@ -66,6 +66,21 @@ object ApiErrorParser {
         }
     }
 
+    fun messageForHttpStatus(statusCode: Int, fallback: String): String {
+        return when (statusCode) {
+            400 -> "Invalid request. Please review your input and try again."
+            401 -> "Session expired. Please log in again."
+            403 -> "You do not have permission to access this resource."
+            429 -> "Too many requests. Please try again later."
+            in 500..599 -> "Server error. Please try again later."
+            else -> fallback
+        }
+    }
+
+    fun resolvedCode(error: ApiErrorResponse): String? {
+        return error.code ?: error.errorCode
+    }
+
     fun messageForLoginCode(code: String?, fallback: String?): String {
         return when (code) {
             "INVALID_CREDENTIALS" -> "Invalid email or password."

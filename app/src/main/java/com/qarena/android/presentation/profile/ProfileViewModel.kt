@@ -98,9 +98,18 @@ class ProfileViewModel(
                         token = token,
                         email = user.email,
                         role = user.role,
-                        userId = user.id
+                        userId = user.id,
+                        academicLevel = academicLevel,
+                        universityId = user.universityId,
+                        departmentId = user.departmentId,
+                        curriculum = user.curriculum,
+                        streamGroup = user.streamGroup
                     )
                     userState = ProfileUserUiState.Success(user)
+
+                    if (AcademicProfile.isUniversityScoped(academicLevel) && universitiesState is UniversitiesUiState.Idle) {
+                        loadUniversities()
+                    }
 
                     if (AcademicProfile.shouldLoadDepartments(user)) {
                         user.universityId?.let { universityId ->
@@ -197,11 +206,6 @@ class ProfileViewModel(
         updateState = ProfileUpdateUiState.Idle
     }
 
-    fun setClassLevel(classLevel: String) {
-        selectedClassLevel = classLevel.trim()
-        updateState = ProfileUpdateUiState.Idle
-    }
-
     fun setProgram(program: String) {
         selectedProgram = program
         updateState = ProfileUpdateUiState.Idle
@@ -231,7 +235,7 @@ class ProfileViewModel(
                 departmentId = departmentId,
                 curriculum = selectedCurriculum,
                 streamGroup = selectedStreamGroup,
-                classLevel = selectedClassLevel,
+                classLevel = null,
                 program = selectedProgram,
                 batchSession = selectedBatchSession
             )
@@ -254,7 +258,7 @@ class ProfileViewModel(
                     departmentId = departmentId,
                     curriculum = selectedCurriculum,
                     streamGroup = selectedStreamGroup,
-                    classLevel = selectedClassLevel,
+                    classLevel = null,
                     program = selectedProgram,
                     batchSession = selectedBatchSession
                 )
@@ -266,7 +270,12 @@ class ProfileViewModel(
                         token = token,
                         email = user.email,
                         role = user.role,
-                        userId = user.id
+                        userId = user.id,
+                        academicLevel = AcademicProfile.resolveAcademicLevel(user),
+                        universityId = user.universityId,
+                        departmentId = user.departmentId,
+                        curriculum = user.curriculum,
+                        streamGroup = user.streamGroup
                     )
                     selectedAcademicLevel = AcademicProfile.resolveAcademicLevel(user)
                     selectedUniversityId = user.universityId ?: universityId

@@ -44,7 +44,6 @@ fun ProfileSetupScreen(
     var academicLevel by remember { mutableStateOf(AcademicProfile.ACADEMIC_LEVEL_UNIVERSITY) }
     var curriculum by remember { mutableStateOf(AcademicProfile.defaultSyllabusCurriculum()) }
     var streamGroup by remember { mutableStateOf(AcademicProfile.STREAM_GROUP_SCIENCE) }
-    var classLevel by remember { mutableStateOf(AcademicProfile.defaultClassLevel(academicLevel) ?: "10") }
     var program by remember { mutableStateOf("") }
     var batchSession by remember { mutableStateOf("") }
     var selectedUniversity by remember { mutableStateOf<University?>(null) }
@@ -98,7 +97,6 @@ fun ProfileSetupScreen(
                     academicLevel = level
                     curriculum = AcademicProfile.defaultSyllabusCurriculum()
                     streamGroup = AcademicProfile.STREAM_GROUP_SCIENCE
-                    classLevel = AcademicProfile.defaultClassLevel(level) ?: classLevel
                     program = if (AcademicProfile.isUniversityScoped(level)) program else ""
                     batchSession = if (AcademicProfile.isUniversityScoped(level)) batchSession else ""
                     selectedUniversity = null
@@ -179,16 +177,6 @@ fun ProfileSetupScreen(
                     }
                 )
 
-                DropdownField(
-                    label = "Class level",
-                    selectedText = AcademicProfile.classLevelLabel(classLevel),
-                    options = AcademicProfile.classLevelOptions(academicLevel),
-                    optionLabel = { AcademicProfile.classLevelLabel(it) },
-                    onSelected = {
-                        classLevel = it
-                        localErrorMessage = null
-                    }
-                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -205,7 +193,7 @@ fun ProfileSetupScreen(
                             departmentId = departmentId,
                             curriculum = curriculum,
                             streamGroup = streamGroup,
-                            classLevel = classLevel,
+                            classLevel = null,
                             program = program,
                             batchSession = batchSession
                         )
@@ -218,7 +206,7 @@ fun ProfileSetupScreen(
                             departmentId = departmentId,
                             curriculum = curriculum,
                             streamGroup = streamGroup,
-                            classLevel = classLevel,
+                            classLevel = null,
                             program = program,
                             batchSession = batchSession
                         )

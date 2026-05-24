@@ -7,6 +7,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qarena.android.data.repository.SubjectRepository
 import com.qarena.android.model.Suggestion
+import com.qarena.android.model.Subject
+import com.qarena.android.util.PaperTypeLookups
+import com.qarena.android.util.SubjectLookups
 import kotlinx.coroutines.launch
 
 sealed interface SubjectPredictionsUiState {
@@ -23,7 +26,16 @@ class SubjectPredictionsViewModel : ViewModel() {
     var predictionsState by mutableStateOf<SubjectPredictionsUiState>(SubjectPredictionsUiState.Idle)
         private set
 
-    fun loadSubjectPredictions(subjectCode: String) {
+    var subject by mutableStateOf<Subject?>(null)
+        private set
+
+    var supportedPaperTypes by mutableStateOf<List<String>>(emptyList())
+        private set
+
+    var selectedPaperType by mutableStateOf<String?>(null)
+        private set
+
+    fun loadSubjectPredictions(subjectCode: String, paperType: String? = null) {
         viewModelScope.launch {
             val trimmedSubjectCode = subjectCode.trim()
 
@@ -34,7 +46,20 @@ class SubjectPredictionsViewModel : ViewModel() {
 
             predictionsState = SubjectPredictionsUiState.Loading
 
-            val result = subjectRepository.getSubjectPredictions(trimmedSubjectCode)
+            loadSubjectMetadata(trimmedSubjectCode)
+
+            val effectivePaperType = PaperTypeLookups.resolveSelectedPaperType(
+                preferredPaperType = paperType ?: selectedPaperType,
+                supportedPaperTypes = supportedPaperTypes
+            )
+            selectedPaperType = effectivePaperType
+
+            val result = subjectRepository.getSubjectPredictions(
+                subjectCode = trimmedSubjectCode,
+                paperType = effectivePaperType,
+                debugScreenName = "SubjectPredictions",
+                subject = subject
+            )
 
             result
                 .onSuccess { predictions ->
@@ -46,5 +71,40 @@ class SubjectPredictionsViewModel : ViewModel() {
                     )
                 }
         }
+    }
+
+    fun selectPaperType(subjectCode: String, paperType: String) {
+        loadSubjectPredictions(subjectCode, paperType)
+    }
+
+    private suspend fun loadSubjectMetadata(subjectCode: String) {
+        if (subject != null && subject?.subjectCode == subjectCode) {
+            return
+        }
+
+        val result = subjectRepository.getSubjectOverview(
+            subjectCode = subjectCode,
+            debugScreenName = "SubjectPredictions",
+            subject = subject
+        )
+
+        result
+            .onSuccess { overview ->
+                val subjectMetadata = overview.subject?.let { with(SubjectLookups) { it.toSubject() } }
+                subject = subjectMetadata
+                supportedPaperTypes = PaperTypeLookups.normalizeSupportedPaperTypes(
+                    subjectMetadata?.supportedPaperTypes ?: overview.subject?.supportedPaperTypes
+                )
+                selectedPaperType = PaperTypeLookups.resolveSelectedPaperType(
+                    preferredPaperType = selectedPaperType,
+                    supportedPaperTypes = supportedPaperTypes
+                )
+            }
+            .onFailure {
+                if (subject == null) {
+                    supportedPaperTypes = emptyList()
+                    selectedPaperType = null
+                }
+            }
     }
 }

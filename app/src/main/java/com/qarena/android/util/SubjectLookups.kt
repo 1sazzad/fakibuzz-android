@@ -3,6 +3,7 @@ package com.qarena.android.util
 import com.qarena.android.data.remote.dto.SubjectDto
 import com.qarena.android.data.remote.dto.SubjectListResponse
 import com.qarena.android.data.remote.dto.SubjectResponse
+import com.qarena.android.data.remote.dto.resolvedSubjects
 import com.qarena.android.model.Subject
 import com.qarena.android.model.displayLabel
 import com.qarena.android.util.PaperTypeLookups.normalizeSupportedPaperTypes
@@ -10,13 +11,13 @@ import com.qarena.android.util.PaperTypeLookups.normalizeSupportedPaperTypes
 object SubjectLookups {
 
     fun normalizeSubjects(response: SubjectListResponse): List<Subject> {
-        val dtoList = response.items ?: response.subjects ?: emptyList()
+        val dtoList = response.resolvedSubjects()
         return dtoList.map { it.toSubject() }
     }
 
     fun SubjectDto.toSubject(): Subject {
         return Subject(
-            id = this.id ?: -1,
+            id = this.id,
             subjectCode = this.subject_code?.trim().orEmpty(),
             subjectName = this.subject_name?.trim().orEmpty(),
             universityId = this.university_id,
@@ -29,7 +30,7 @@ object SubjectLookups {
 
     fun SubjectResponse.toSubject(): Subject {
         return Subject(
-            id = this.id ?: -1,
+            id = this.id,
             subjectCode = this.subjectCode?.trim().orEmpty(),
             subjectName = this.subjectName?.trim().orEmpty(),
             universityId = this.universityId,

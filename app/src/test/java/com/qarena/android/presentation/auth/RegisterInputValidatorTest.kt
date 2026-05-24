@@ -16,6 +16,22 @@ class RegisterInputValidatorTest {
     }
 
     @Test
+    fun validateAcceptsSscWithoutInstitutionOrClassLevel() {
+        val error = RegisterInputValidator.validate(
+            validInput().copy(
+                academicLevel = AcademicProfile.ACADEMIC_LEVEL_SSC,
+                universityId = null,
+                departmentId = null,
+                curriculum = AcademicProfile.CURRICULUM_NATIONAL,
+                streamGroup = AcademicProfile.STREAM_GROUP_SCIENCE,
+                classLevel = null
+            )
+        )
+
+        assertNull(error)
+    }
+
+    @Test
     fun validateRejectsInvalidBangladeshPhone() {
         val error = RegisterInputValidator.validate(
             validInput().copy(phone = "12345")

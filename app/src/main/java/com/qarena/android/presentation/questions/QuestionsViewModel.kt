@@ -43,6 +43,7 @@ class QuestionsViewModel : ViewModel() {
 
     fun loadQuestions(subjectCode: String, paperType: String? = null) {
         loadJob?.cancel()
+        questions = emptyList()
         loadJob = viewModelScope.launch {
             val trimmedSubjectCode = subjectCode.trim()
 
@@ -77,7 +78,9 @@ class QuestionsViewModel : ViewModel() {
 
             val result = questionRepository.getQuestions(
                 subjectCode = trimmedSubjectCode,
-                paperType = effectivePaperType
+                paperType = effectivePaperType,
+                debugScreenName = "Questions",
+                subject = subject
             )
 
             result
@@ -101,15 +104,19 @@ class QuestionsViewModel : ViewModel() {
             return
         }
 
-        val result = subjectRepository.getSubjectOverview(subjectCode)
+        val result = subjectRepository.getSubjectOverview(
+            subjectCode = subjectCode,
+            debugScreenName = "Questions",
+            subject = subject
+        )
 
         result
             .onSuccess { overview ->
                 val subjectMetadata = overview.subject?.let { with(SubjectLookups) { it.toSubject() } }
                 subject = subjectMetadata
-                supportedPaperTypes = PaperTypeLookups.normalizeSupportedPaperTypes(
+                supportedPaperTypes = (PaperTypeLookups.normalizeSupportedPaperTypes(
                     subjectMetadata?.supportedPaperTypes ?: overview.subject?.supportedPaperTypes
-                )
+                ) + PaperTypeLookups.allPaperTypes()).distinct()
                 selectedPaperType = PaperTypeLookups.resolveSelectedPaperType(
                     preferredPaperType = selectedPaperType,
                     supportedPaperTypes = supportedPaperTypes

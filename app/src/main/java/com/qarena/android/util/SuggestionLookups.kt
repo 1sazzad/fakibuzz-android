@@ -2,7 +2,6 @@ package com.qarena.android.util
 
 import com.qarena.android.data.remote.dto.PredictionDto
 import com.qarena.android.data.remote.dto.PredictionsResponse
-import com.qarena.android.data.remote.dto.SuggestionDto
 import com.qarena.android.data.remote.dto.SuggestionsResponse
 import com.qarena.android.model.Suggestion
 import com.qarena.android.util.PaperTypeLookups.normalizePaperType
@@ -18,8 +17,7 @@ object SuggestionLookups {
             return emptyList()
         }
 
-        val payload = response.items ?: response.suggestions ?: emptyList()
-        return payload.map { it.toSuggestion() }
+        return response.suggestions ?: response.data ?: response.results ?: emptyList()
     }
 
     fun normalizePredictions(response: PredictionsResponse?): List<Suggestion> {
@@ -62,31 +60,6 @@ object SuggestionLookups {
             ?: "No question text"
     }
 
-    private fun SuggestionDto.toSuggestion(): Suggestion {
-        return Suggestion(
-            questionId = question_id,
-            questionText = displaySafeText(question_text, stem),
-            stem = stem?.trim()?.takeIf { it.isNotBlank() },
-            topic = topic?.trim()?.takeIf { it.isNotBlank() },
-            marks = marks,
-            year = year ?: exam_year,
-            examYear = exam_year ?: year,
-            predictionScore = normalizePredictionScore(prediction_score),
-            paperType = normalizePaperType(paper_type),
-            section = section?.trim()?.takeIf { it.isNotBlank() },
-            questionType = question_type?.trim()?.takeIf { it.isNotBlank() },
-            instruction = instruction?.trim()?.takeIf { it.isNotBlank() },
-            tableData = table_data?.takeIf { !it.isJsonNull },
-            wordBox = word_box?.takeIf { !it.isJsonNull },
-            subQuestions = sub_questions,
-            options = options,
-            diagramRequired = diagram_required,
-            diagramReference = diagram_reference?.trim()?.takeIf { it.isNotBlank() },
-            diagramDescription = diagram_description?.trim()?.takeIf { it.isNotBlank() },
-            mathBlocks = math_blocks?.takeIf { !it.isJsonNull }
-        )
-    }
-
     private fun PredictionDto.toSuggestion(): Suggestion {
         return Suggestion(
             questionId = question_id,
@@ -99,7 +72,16 @@ object SuggestionLookups {
             predictionScore = normalizePredictionScore(prediction_score),
             paperType = null,
             subQuestions = null,
-            options = null
+            options = null,
+            diagramRequired = diagram_required,
+            diagramType = diagram_type?.trim()?.takeIf { it.isNotBlank() },
+            diagramSvg = diagram_svg?.trim()?.takeIf { it.isNotBlank() },
+            diagramUrl = diagram_url?.trim()?.takeIf { it.isNotBlank() },
+            diagramReference = diagram_reference?.trim()?.takeIf { it.isNotBlank() },
+            diagramDescription = diagram_description?.trim()?.takeIf { it.isNotBlank() },
+            formulaLatex = formula_latex?.trim()?.takeIf { it.isNotBlank() },
+            formulaDisplay = formula_display?.trim()?.takeIf { it.isNotBlank() },
+            mathBlocks = null
         )
     }
 }

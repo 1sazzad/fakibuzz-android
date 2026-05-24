@@ -5,8 +5,12 @@ import com.qarena.android.core.session.SessionManager
 import com.qarena.android.data.remote.ApiErrorParser
 import com.qarena.android.data.remote.ApiException
 import com.qarena.android.data.remote.api.SubjectApi
+import com.qarena.android.data.remote.dto.QuestionListResponse
 import com.qarena.android.data.remote.dto.QuestionResponse
+import com.qarena.android.data.remote.dto.toQuestionResponse
+import com.qarena.android.model.Subject
 import com.qarena.android.util.PaperTypeLookups
+import android.util.Log
 import java.io.IOException
 import retrofit2.HttpException
 
@@ -18,9 +22,9 @@ class QuestionRepository {
 
     suspend fun getQuestions(
         subjectCode: String,
-        page: Int = 1,
-        limit: Int = 20,
-        paperType: String? = null
+        paperType: String? = null,
+        debugScreenName: String? = null,
+        subject: Subject? = null
     ): Result<List<QuestionResponse>> {
         val token = accessTokenProvider()
         val trimmedSubjectCode = subjectCode.trim()
@@ -39,17 +43,118 @@ class QuestionRepository {
         }
 
         return try {
-            val response = subjectApi.getQuestions(
+
+            logQuestionRequest(
+                screenName = debugScreenName ?: "Questions",
+                subject = subject,
+                subjectCode = trimmedSubjectCode,
+                limitApplied = false
+            )
+
+            Log.d(
+                "SubjectQuestions",
+                "subjectCode=$trimmedSubjectCode paperType=${normalizedPaperType ?: "null"}"
+            )
+
+            val response: QuestionListResponse = subjectApi.getQuestions(
                 authorization = "Bearer $token",
                 subjectCode = trimmedSubjectCode,
-                page = page,
-                limit = limit,
-                paperType = normalizedPaperType
+                    paperType = normalizedPaperType
             )
-            Result.success(response.questions ?: emptyList())
+
+            Log.d(
+                "SubjectQuestions",
+                "items=${response.items.size}, questions=${response.questions.size}, results=${response.results.size}, data=${response.data.size}"
+            )
+
+            val questions = response.questionList().map { it.toQuestionResponse() }
+
+            logQuestionResponse(
+                screenName = debugScreenName ?: "Questions",
+                responseCount = questions.size,
+                firstPaperType = questions.firstOrNull()?.paperType,
+                totalPages = null,
+                responsePath = "wrapper"
+            )
+
+            Log.d("SubjectQuestions", "total=${response.totalCount()} finalCount=${questions.size}")
+
+            Result.success(questions)
         } catch (exception: Exception) {
+            logQuestionError(debugScreenName ?: "Questions", exception)
             Result.failure(Exception(mapThrowable(exception, normalizedPaperType != null)))
         }
+    }
+
+    private fun logQuestionRequest(
+        screenName: String,
+        subject: Subject?,
+        subjectCode: String,
+        paperType: String?,
+        limitApplied: Boolean
+    ) {
+        Log.d(
+            "SubjectRequest",
+            buildString {
+                append(screenName)
+                append(" request_url=/subjects/")
+                append(subjectCode)
+                paperType?.let {
+                    append("&paper_type=")
+                    append(it)
+                }
+                append(" subject.id=")
+                append(subject?.id ?: "null")
+                append(" subject.subject_code=")
+                append(subject?.subjectCode ?: subjectCode)
+                append(" paper_type=")
+                append(paperType ?: "null")
+                append(" limit_applied=")
+                append(limitApplied)
+            }
+        )
+    }
+
+    private fun logQuestionResponse(
+        screenName: String,
+        responseCount: Int,
+        firstPaperType: String?,
+        totalPages: Int?,
+        responsePath: String
+    ) {
+        Log.d(
+            "SubjectRequest",
+            buildString {
+                append(screenName)
+                append(" response_count=")
+                append(responseCount)
+                append(" first_paper_type=")
+                append(firstPaperType ?: "null")
+                append(" response_path=")
+                append(responsePath)
+                append(" total_pages=")
+                append(totalPages ?: "null")
+            }
+        )
+    }
+
+    private fun logQuestionError(screenName: String, exception: Exception) {
+        val httpException = exception as? HttpException
+        val errorBody = runCatching { httpException?.response()?.errorBody()?.string() }.getOrNull()
+        Log.d(
+            "SubjectRequest",
+            buildString {
+                append(screenName)
+                append(" error code=")
+                append(httpException?.code() ?: "null")
+                append(" message=")
+                append(exception.message ?: "null")
+                if (!errorBody.isNullOrBlank()) {
+                    append(" error_body=")
+                    append(errorBody)
+                }
+            }
+        )
     }
 
     private fun mapThrowable(exception: Exception, hasPaperType: Boolean): String {
@@ -66,8 +171,9 @@ class QuestionRepository {
         val errorBody = runCatching { response?.errorBody()?.string() }.getOrNull()
         val parsed = ApiErrorParser.parseErrorBody(errorBody)
 
-        if (!parsed.code.isNullOrBlank()) {
-            val mapped = ApiErrorParser.messageForSubjectLookupCode(parsed.code, parsed.message)
+        val parsedCode = ApiErrorParser.resolvedCode(parsed)
+        if (!parsedCode.isNullOrBlank()) {
+            val mapped = ApiErrorParser.messageForSubjectLookupCode(parsedCode, parsed.message)
             if (!mapped.isNullOrBlank()) {
                 return mapped
             }
@@ -81,10 +187,20 @@ class QuestionRepository {
             }
 
             401 -> "Session expired. Please log in again."
+            403 -> "You do not have access to this subject scope."
             404 -> "Questions not found for this subject."
             429 -> "Too many requests. Please try again later."
             in 500..599 -> "Server error. Please try again."
-            else -> "Failed to load questions"
+            else -> ApiErrorParser.messageForHttpStatus(code, "Failed to load questions")
+        }
+    }
+
+    private fun backendAcademicLevel(value: String?): String? {
+        return when (value?.trim()?.lowercase()) {
+            "ssc" -> "SSC"
+            "hsc" -> "HSC"
+            "university" -> "UNIVERSITY"
+            else -> value?.trim()?.takeIf { it.isNotBlank() }
         }
     }
 }

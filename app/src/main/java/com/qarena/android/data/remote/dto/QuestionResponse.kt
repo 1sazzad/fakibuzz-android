@@ -5,6 +5,7 @@ import com.google.gson.annotations.SerializedName
 import com.qarena.android.model.SubQuestion
 
 data class QuestionResponse(
+    @SerializedName(value = "question_id", alternate = ["id"])
     val id: Int? = null,
 
     @SerializedName("question_no")
@@ -34,6 +35,12 @@ data class QuestionResponse(
     @SerializedName("question_text")
     val questionText: String? = null,
 
+    @SerializedName(value = "year", alternate = ["exam_year"])
+    val year: Int? = null,
+
+    @SerializedName("exam_year")
+    val examYear: Int? = null,
+
     val marks: Int? = null,
     val topic: String? = null,
 
@@ -55,6 +62,15 @@ data class QuestionResponse(
     @SerializedName("diagram_required")
     val diagramRequired: Boolean? = null,
 
+    @SerializedName("diagram_type")
+    val diagramType: String? = null,
+
+    @SerializedName("diagram_svg")
+    val diagramSvg: String? = null,
+
+    @SerializedName("diagram_url")
+    val diagramUrl: String? = null,
+
     @SerializedName("diagram_reference")
     val diagramReference: String? = null,
 
@@ -64,9 +80,21 @@ data class QuestionResponse(
     @SerializedName("math_blocks")
     val mathBlocks: JsonElement? = null,
 
-    @SerializedName("exam_year")
-    val examYear: Int? = null,
-
     @SerializedName("subject_code")
-    val subjectCode: String? = null
+    val subjectCode: String? = null,
+
+    @SerializedName("academic_level")
+    val academicLevel: String? = null,
+
+    @SerializedName("answer_type")
+    val answerType: String? = null,
+
+    @SerializedName("university_id")
+    val universityId: Int? = null,
+
+    @SerializedName("department_id")
+    val departmentId: Int? = null
 )
+
+val QuestionResponse.questionId: Int?
+    get() = id

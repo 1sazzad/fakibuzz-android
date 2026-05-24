@@ -9,6 +9,9 @@ data class RegisterRequest(
     val password: String,
     val academic_level: String? = null,
     val institution_type: String? = null,
+    val institution_name: String? = null,
+    val school_name: String? = null,
+    val college_name: String? = null,
     val curriculum: String? = null,
     val stream_group: String? = null,
     val class_level: String? = null,
@@ -30,14 +33,26 @@ data class RegisterUser(
     val full_name: String,
     val email: String,
     val role: String,
-    val is_email_verified: Boolean
+    val is_email_verified: Boolean,
+    val academic_level: String? = null,
+    val university_id: Int? = null,
+    val department_id: Int? = null,
+    val institution_name: String? = null,
+    val school_name: String? = null,
+    val college_name: String? = null
 )
 
 data class ApiErrorResponse(
     val success: Boolean? = null,
     val message: String? = null,
     val field: String? = null,
-    val code: String? = null
+    val code: String? = null,
+
+    @SerializedName("error_code")
+    val errorCode: String? = null,
+
+    @SerializedName("status_code")
+    val statusCode: Int? = null
 )
 
 data class VerifyEmailRequest(

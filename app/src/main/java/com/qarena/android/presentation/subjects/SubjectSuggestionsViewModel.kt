@@ -1,5 +1,6 @@
 package com.qarena.android.presentation.subjects
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -56,6 +57,18 @@ class SubjectSuggestionsViewModel : ViewModel() {
             val trimmedSubjectCode = subjectCode.trim()
             val normalizedQuery = SuggestionLookups.normalizeQuery(query)
             query = normalizedQuery
+            val normalizedRequestedPaperType = PaperTypeLookups.normalizePaperType(paperType ?: selectedPaperType)
+
+            if (paperType != null && normalizedRequestedPaperType == null) {
+                suggestionsState = SubjectSuggestionsUiState.Error(
+                    "Invalid paper type. Please choose CQ, MCQ, or WRITTEN."
+                )
+                return@launch
+            }
+
+            if (normalizedRequestedPaperType != null) {
+                selectedPaperType = normalizedRequestedPaperType
+            }
 
             if (trimmedSubjectCode.isBlank()) {
                 suggestionsState = SubjectSuggestionsUiState.Error("Subject code is required")
@@ -66,12 +79,6 @@ class SubjectSuggestionsViewModel : ViewModel() {
                 loadSubjectMetadata(trimmedSubjectCode)
             }
 
-            val effectivePaperType = PaperTypeLookups.resolveSelectedPaperType(
-                preferredPaperType = paperType ?: selectedPaperType,
-                supportedPaperTypes = supportedPaperTypes
-            )
-            selectedPaperType = effectivePaperType
-
             if (normalizedQuery.isBlank()) {
                 suggestionsState = SubjectSuggestionsUiState.Error("Search query is required")
                 return@launch
@@ -79,11 +86,29 @@ class SubjectSuggestionsViewModel : ViewModel() {
 
             suggestionsState = SubjectSuggestionsUiState.Loading
 
+            val effectivePaperType = PaperTypeLookups.resolveSelectedPaperType(
+                preferredPaperType = selectedPaperType,
+                supportedPaperTypes = supportedPaperTypes
+            ) ?: selectedPaperType
+            selectedPaperType = effectivePaperType
+
+            Log.d(
+                "SubjectRequest",
+                buildString {
+                    append("SubjectSuggestions selected_subject_code=")
+                    append(trimmedSubjectCode)
+                    append(" selected_paper_type=")
+                    append(effectivePaperType ?: "null")
+                }
+            )
+
             val result = subjectRepository.getSubjectSuggestions(
                 subjectCode = trimmedSubjectCode,
                 query = normalizedQuery,
                 topK = topK,
-                paperType = effectivePaperType
+                paperType = effectivePaperType,
+                debugScreenName = "SubjectSuggestions",
+                subject = subject
             )
 
             result
@@ -107,7 +132,11 @@ class SubjectSuggestionsViewModel : ViewModel() {
             return
         }
 
-        val result = subjectRepository.getSubjectOverview(subjectCode)
+        val result = subjectRepository.getSubjectOverview(
+            subjectCode = subjectCode,
+            debugScreenName = "SubjectSuggestions",
+            subject = subject
+        )
 
         result
             .onSuccess { overview ->
@@ -131,6 +160,6 @@ class SubjectSuggestionsViewModel : ViewModel() {
 
     private companion object {
         const val DEFAULT_QUERY = "important questions"
-        const val DEFAULT_TOP_K = 10
+        const val DEFAULT_TOP_K = 100
     }
 }

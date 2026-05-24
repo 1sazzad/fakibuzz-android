@@ -164,7 +164,12 @@ class ProfileSetupViewModel(
                             token = token,
                             email = user.email,
                             role = user.role,
-                            userId = user.id
+                            userId = user.id,
+                            academicLevel = AcademicProfile.resolveAcademicLevel(user),
+                            universityId = user.universityId,
+                            departmentId = user.departmentId,
+                            curriculum = user.curriculum,
+                            streamGroup = user.streamGroup
                         )
                     }
 

@@ -1,21 +1,19 @@
 package com.qarena.android.presentation.subjects
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -23,8 +21,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.qarena.android.core.analytics.AnalyticsTracker
 import com.qarena.android.data.remote.dto.SubjectOverviewResponse
 import com.qarena.android.model.displaySubtitle
-import com.qarena.android.util.SubjectLookups
+import com.qarena.android.model.toSuggestion
+import com.qarena.android.presentation.common.AnswerPayload
+import com.qarena.android.util.QuestionPresentationLookups
+import com.qarena.android.ui.components.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SubjectOverviewScreen(
     subjectCode: String,
@@ -32,9 +34,11 @@ fun SubjectOverviewScreen(
     onOpenSuggestionsClick: (String) -> Unit,
     onOpenAnalysisClick: (String) -> Unit,
     onOpenPredictionsClick: (String) -> Unit,
+    onGetAnswerClick: (AnswerPayload) -> Unit,
     subjectOverviewViewModel: SubjectOverviewViewModel = viewModel()
 ) {
     val overviewState = subjectOverviewViewModel.overviewState
+    val questionsState = subjectOverviewViewModel.questionsState
 
     LaunchedEffect(subjectCode) {
         AnalyticsTracker.trackScreen(
@@ -42,200 +46,318 @@ fun SubjectOverviewScreen(
             path = "/android/subjects/$subjectCode/overview",
             subjectCode = subjectCode
         )
-        subjectOverviewViewModel.loadSubjectOverview(subjectCode)
+        subjectOverviewViewModel.loadSubjectData(subjectCode)
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Column(
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(text = "Subject Discovery", fontWeight = FontWeight.Bold) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        }
+    ) { padding ->
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp)
+                .padding(padding),
+            contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            Text(
-                text = "Subject Overview",
-                fontSize = 30.sp,
-                fontWeight = FontWeight.Bold
-            )
+            item {
+                Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                    when (overviewState) {
+                        SubjectOverviewUiState.Idle,
+                        SubjectOverviewUiState.Loading -> {
+                            QArenaLoadingState(label = "Gathering subject insights...")
+                        }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                        is SubjectOverviewUiState.Error -> {
+                            QArenaErrorState(
+                                message = overviewState.message,
+                                onRetry = { subjectOverviewViewModel.loadSubjectData(subjectCode) }
+                            )
+                        }
 
-            when (overviewState) {
-                SubjectOverviewUiState.Idle,
-                SubjectOverviewUiState.Loading -> {
-                    Text(text = "Loading subject overview...")
+                        is SubjectOverviewUiState.Success -> {
+                            OverviewHeader(
+                                overview = overviewState.overview,
+                                fallbackSubjectCode = subjectCode
+                            )
+                            
+                            Spacer(modifier = Modifier.height(24.dp))
+                            
+                            ActionShortcuts(
+                                subjectCode = subjectCode,
+                                onOpenSuggestionsClick = onOpenSuggestionsClick,
+                                onOpenAnalysisClick = onOpenAnalysisClick,
+                                onOpenPredictionsClick = onOpenPredictionsClick
+                            )
+
+                            Spacer(modifier = Modifier.height(32.dp))
+                            
+                            PublishedQuestionsHeader(
+                                supportedPaperTypes = subjectOverviewViewModel.supportedPaperTypes,
+                                selectedPaperType = subjectOverviewViewModel.selectedPaperType,
+                                onPaperTypeSelected = { paperType ->
+                                    subjectOverviewViewModel.selectPaperType(subjectCode, paperType)
+                                }
+                            )
+                        }
+                    }
                 }
+            }
 
-                is SubjectOverviewUiState.Error -> {
-                    Text(
-                        text = overviewState.message,
-                        color = MaterialTheme.colorScheme.error
-                    )
+            // Questions List
+            when (questionsState) {
+                is QuestionsUiState.Success -> {
+                    items(questionsState.questions) { question ->
+                        Box(modifier = Modifier.padding(horizontal = 20.dp)) {
+                            val suggestion = question.toSuggestion()
+                            QuestionCard(
+                                suggestion = suggestion,
+                                onClick = {
+                                    onGetAnswerClick(
+                                        AnswerPayload(
+                                            questionId = question.id,
+                                            questionText = suggestion.questionText,
+                                            prompt = QuestionPresentationLookups.buildAnswerPrompt(
+                                                questionText = question.questionText,
+                                                section = question.section,
+                                                questionType = question.questionType,
+                                                instruction = question.instruction,
+                                                stem = question.stem,
+                                                tableData = question.tableData,
+                                                wordBox = question.wordBox,
+                                                options = question.options,
+                                                subQuestions = question.subQuestions,
+                                                formulaLatex = question.formulaLatex,
+                                                formulaDisplay = question.formulaDisplay,
+                                                diagramDescription = question.diagramDescription,
+                                                diagramReference = question.diagramReference,
+                                                diagramType = question.diagramType,
+                                                diagramSvg = question.diagramSvg,
+                                                diagramRequired = question.diagramRequired,
+                                                mathBlocks = question.mathBlocks
+                                            ),
+                                            subjectCode = subjectCode,
+                                            academicLevel = question.academicLevel,
+                                            paperType = question.paperType,
+                                            topic = question.topic,
+                                            marks = question.marks,
+                                            formulaLatex = question.formulaLatex,
+                                            formulaDisplay = question.formulaDisplay,
+                                            diagramRequired = question.diagramRequired,
+                                            diagramType = question.diagramType,
+                                            diagramSvg = question.diagramSvg,
+                                            diagramUrl = question.diagramUrl,
+                                            diagramReference = question.diagramReference,
+                                            diagramDescription = question.diagramDescription,
+                                            mathBlocks = question.mathBlocks,
+                                            answerType = question.answerType,
+                                            section = question.section,
+                                            instruction = question.instruction,
+                                            stem = question.stem,
+                                            questionType = question.questionType,
+                                            tableData = question.tableData,
+                                            wordBox = question.wordBox
+                                        )
+                                    )
+                                }
+                            )
+                        }
+                    }
+                    if (questionsState.questions.isEmpty()) {
+                        item {
+                            Box(modifier = Modifier.padding(20.dp)) {
+                                QArenaEmptyState(
+                                    title = "No questions found",
+                                    description = "Try a different paper type for this subject."
+                                )
+                            }
+                        }
+                    }
                 }
-
-                is SubjectOverviewUiState.Success -> {
-                    SubjectOverviewContent(
-                        overview = overviewState.overview,
-                        fallbackSubjectCode = subjectCode,
-                        onOpenQuestionsClick = onOpenQuestionsClick,
-                        onOpenSuggestionsClick = onOpenSuggestionsClick,
-                        onOpenAnalysisClick = onOpenAnalysisClick,
-                        onOpenPredictionsClick = onOpenPredictionsClick
-                    )
+                is QuestionsUiState.Loading -> {
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    }
                 }
+                is QuestionsUiState.Error -> {
+                    item {
+                        Box(modifier = Modifier.padding(20.dp)) {
+                            Text(text = questionsState.message, color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+                else -> {}
             }
         }
     }
 }
 
 @Composable
-private fun SubjectOverviewContent(
+private fun OverviewHeader(
     overview: SubjectOverviewResponse,
-    fallbackSubjectCode: String,
-    onOpenQuestionsClick: (String) -> Unit,
+    fallbackSubjectCode: String
+) {
+    val subjectName = overview.subject?.subjectName ?: overview.subjectName ?: "Unnamed subject"
+    val subjectCode = overview.subject?.subjectCode ?: overview.subjectCode ?: fallbackSubjectCode
+    val totalQuestions = overview.totalQuestions ?: overview.questionCount
+
+    Column {
+        Text(
+            text = subjectCode,
+            style = MaterialTheme.typography.displaySmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Text(
+            text = subjectName,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            StatCard(
+                label = "Questions",
+                value = totalQuestions?.toString() ?: "0",
+                icon = Icons.Default.Description,
+                modifier = Modifier.weight(1f)
+            )
+            StatCard(
+                label = "Years",
+                value = overview.years?.size?.toString() ?: "0",
+                icon = Icons.Default.Event,
+                modifier = Modifier.weight(1f)
+            )
+            StatCard(
+                label = "Topics",
+                value = overview.topics?.size?.toString() ?: "0",
+                icon = Icons.Default.Topic,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatCard(
+    label: String,
+    value: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun ActionShortcuts(
+    subjectCode: String,
     onOpenSuggestionsClick: (String) -> Unit,
     onOpenAnalysisClick: (String) -> Unit,
     onOpenPredictionsClick: (String) -> Unit
 ) {
-    val subjectName = overview.subject?.subjectName
-        ?: overview.subjectName
-        ?: "Unnamed subject"
-    val subjectCode = overview.subject?.subjectCode
-        ?: overview.subjectCode
-        ?: fallbackSubjectCode
-    val totalQuestions = overview.totalQuestions
-        ?: overview.questionCount
-
-    if (subjectName == "Unnamed subject" && subjectCode.isBlank()) {
-        Text(text = "No overview found")
-        return
-    }
-
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = subjectName,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold
+    Column {
+        Text(
+            text = "Next Steps",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ShortcutCard(
+                title = "Predictions",
+                icon = Icons.Default.AutoAwesome,
+                onClick = { onOpenPredictionsClick(subjectCode) },
+                modifier = Modifier.weight(1f)
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = subjectCode,
-                fontSize = 16.sp
+            ShortcutCard(
+                title = "Analysis",
+                icon = Icons.Default.Insights,
+                onClick = { onOpenAnalysisClick(subjectCode) },
+                modifier = Modifier.weight(1f)
             )
-
-            overview.subject?.let { subject ->
-                SubjectLookups.run {
-                    subject.toSubject().displaySubtitle()
-                }?.let { subtitle ->
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = subtitle,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            totalQuestions?.let { count ->
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Total questions: $count",
-                    fontSize = 14.sp
-                )
-            }
-
-            overview.summary?.takeIf { it.isNotBlank() }?.let { summary ->
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(text = summary)
-            }
         }
-    }
-
-    OverviewListSection(
-        title = "Years",
-        values = overview.years
-            ?.map { it.toString() }
-            .orEmpty()
-    )
-
-    OverviewListSection(
-        title = "Topics",
-        values = overview.topics.orEmpty()
-    )
-
-    Spacer(modifier = Modifier.height(20.dp))
-
-    Button(
-        onClick = { onOpenQuestionsClick(subjectCode) },
-        modifier = Modifier.fillMaxWidth(),
-        enabled = subjectCode.isNotBlank()
-    ) {
-        Text(text = "Open Questions")
-    }
-
-    Spacer(modifier = Modifier.height(10.dp))
-
-    Button(
-        onClick = { onOpenSuggestionsClick(subjectCode) },
-        modifier = Modifier.fillMaxWidth(),
-        enabled = subjectCode.isNotBlank()
-    ) {
-        Text(text = "Open Suggestions")
-    }
-
-    Spacer(modifier = Modifier.height(10.dp))
-
-    Button(
-        onClick = { onOpenAnalysisClick(subjectCode) },
-        modifier = Modifier.fillMaxWidth(),
-        enabled = subjectCode.isNotBlank()
-    ) {
-        Text(text = "Open Analysis")
-    }
-
-    Spacer(modifier = Modifier.height(10.dp))
-
-    Button(
-        onClick = { onOpenPredictionsClick(subjectCode) },
-        modifier = Modifier.fillMaxWidth(),
-        enabled = subjectCode.isNotBlank()
-    ) {
-        Text(text = "Open Predictions")
     }
 }
 
 @Composable
-private fun OverviewListSection(
+private fun ShortcutCard(
     title: String,
-    values: List<String>
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    if (values.isEmpty()) {
-        return
-    }
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = title,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            values.forEach { value ->
-                Text(
-                    text = value,
-                    fontSize = 14.sp
-                )
-            }
+    OutlinedCard(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        border = CardDefaults.outlinedCardBorder().copy(width = 0.5.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = title, style = MaterialTheme.typography.labelLarge)
         }
+    }
+}
+
+@Composable
+private fun PublishedQuestionsHeader(
+    supportedPaperTypes: List<String>,
+    selectedPaperType: String?,
+    onPaperTypeSelected: (String) -> Unit
+) {
+    Column {
+        Text(
+            text = "Published Questions",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        if (supportedPaperTypes.isNotEmpty()) {
+            PaperTypeSelector(
+                supportedPaperTypes = supportedPaperTypes,
+                selectedPaperType = selectedPaperType,
+                onPaperTypeSelected = onPaperTypeSelected
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }

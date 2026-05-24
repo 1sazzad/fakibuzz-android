@@ -24,11 +24,16 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.qarena.android.core.analytics.AnalyticsTracker
 import com.qarena.android.data.remote.dto.SearchResultResponse
+import com.qarena.android.presentation.common.AnswerPayload
+import com.qarena.android.presentation.common.DiagramInfo
+import com.qarena.android.presentation.common.DiagramRenderer
+import com.qarena.android.presentation.common.toDiagramInfo
+import com.qarena.android.util.QuestionPresentationLookups
 
 @Composable
 fun SearchScreen(
     onOpenSubjectOverviewClick: (String) -> Unit,
-    onGetAnswerClick: (questionId: Int?, questionText: String, subjectCode: String, marks: Int?) -> Unit,
+    onGetAnswerClick: (AnswerPayload) -> Unit,
     searchViewModel: SearchViewModel = viewModel()
 ) {
     val searchState = searchViewModel.searchState
@@ -115,7 +120,7 @@ fun SearchScreen(
 private fun SearchResultsContent(
     searchState: SearchUiState,
     onOpenSubjectOverviewClick: (String) -> Unit,
-    onGetAnswerClick: (questionId: Int?, questionText: String, subjectCode: String, marks: Int?) -> Unit
+    onGetAnswerClick: (AnswerPayload) -> Unit
 ) {
     when (searchState) {
         SearchUiState.Idle -> Unit
@@ -152,7 +157,7 @@ private fun SearchResultsContent(
 private fun SearchResultCard(
     result: SearchResultResponse,
     onOpenSubjectOverviewClick: (String) -> Unit,
-    onGetAnswerClick: (questionId: Int?, questionText: String, subjectCode: String, marks: Int?) -> Unit
+    onGetAnswerClick: (AnswerPayload) -> Unit
 ) {
     val subjectCode = result.subjectCode.orEmpty()
     val questionText = result.questionText.orEmpty()
@@ -170,6 +175,8 @@ private fun SearchResultCard(
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
+
+            DiagramRenderer(diagramInfo = result.toDiagramInfo())
 
             if (subjectCode.isNotBlank() || !result.subjectName.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -223,13 +230,38 @@ private fun SearchResultCard(
             Button(
                 onClick = {
                     onGetAnswerClick(
-                        result.questionId,
-                        questionText,
-                        subjectCode,
-                        result.marks
+                        AnswerPayload(
+                            questionId = result.questionId,
+                            questionText = questionText,
+                            prompt = QuestionPresentationLookups.buildAnswerPrompt(
+                            questionText = questionText,
+                            diagramDescription = result.diagramDescription,
+                            diagramReference = result.diagramReference,
+                            diagramType = result.diagramType,
+                            diagramSvg = result.diagramSvg,
+                                diagramRequired = result.diagramRequired
+                            ),
+                            subjectCode = subjectCode,
+                            academicLevel = result.academicLevel,
+                            paperType = result.paperType,
+                            topic = result.topic,
+                            marks = result.marks,
+                            formulaLatex = result.formulaLatex,
+                            formulaDisplay = result.formulaDisplay,
+                            diagramRequired = result.diagramRequired,
+                            diagramType = result.diagramType,
+                            diagramSvg = result.diagramSvg,
+                            diagramUrl = result.diagramUrl,
+                            diagramReference = result.diagramReference,
+                            diagramDescription = result.diagramDescription,
+                            mathBlocks = result.mathBlocks
+                        )
                     )
                 },
-                enabled = questionText.isNotBlank() && subjectCode.isNotBlank()
+                enabled = (questionText.isNotBlank() ||
+                    result.diagramRequired == true ||
+                    !result.diagramSvg.isNullOrBlank() ||
+                    !result.diagramDescription.isNullOrBlank()) && subjectCode.isNotBlank()
             ) {
                 Text(text = "Get Answer")
             }

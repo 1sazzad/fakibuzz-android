@@ -3,7 +3,7 @@ package com.qarena.android.data.remote.dto
 import com.google.gson.annotations.SerializedName
 
 data class SubjectDto(
-    @SerializedName(value = "id", alternate = ["subject_id"]) 
+    @SerializedName("id")
     val id: Int? = null,
 
     @SerializedName("subject_code")
@@ -25,5 +25,8 @@ data class SubjectDto(
     val group: String? = null,
 
     @SerializedName("supported_paper_types")
-    val supported_paper_types: List<String>? = null
+    val supported_paper_types: List<String>? = null,
+
+    @SerializedName("status")
+    val status: String? = null
 )
