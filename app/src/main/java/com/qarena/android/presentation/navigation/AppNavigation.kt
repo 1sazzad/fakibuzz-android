@@ -25,11 +25,14 @@ import com.qarena.android.presentation.profile.ProfileSetupScreen
 import com.qarena.android.presentation.questions.QuestionsScreen
 import com.qarena.android.presentation.search.SearchScreen
 import com.qarena.android.presentation.splash.SplashScreen
+import com.qarena.android.presentation.subjects.AnswerBuilderScreen
+import com.qarena.android.presentation.subjects.SimilarQuestionsScreen
+import com.qarena.android.presentation.subjects.SubjectDiscoveryScreen
 import com.qarena.android.presentation.subjects.SubjectAnalysisScreen
 import com.qarena.android.presentation.subjects.SubjectOverviewScreen
 import com.qarena.android.presentation.subjects.SubjectPredictionsScreen
 import com.qarena.android.presentation.subjects.SubjectSuggestionsScreen
-import com.qarena.android.presentation.subjects.SubjectsScreen
+import com.qarena.android.presentation.subjects.TopicAnalysisScreen
 import com.google.gson.Gson
 
 @Composable
@@ -249,9 +252,18 @@ fun AppNavigation() {
                 navController = navController,
                 protectedRoute = Screen.Subjects.route
             ) {
-                SubjectsScreen(
-                    onSubjectClick = { subjectCode ->
-                        navController.navigate(Screen.SubjectOverview.createRoute(subjectCode))
+                SubjectDiscoveryScreen(
+                    onOpenSimilarQuestionsClick = { args ->
+                        navController.navigate(Screen.SimilarQuestions.createRoute(args))
+                    },
+                    onOpenTopicAnalysisClick = { args ->
+                        navController.navigate(Screen.TopicAnalysis.createRoute(args))
+                    },
+                    onOpenPredictionsClick = { args ->
+                        navController.navigate(Screen.Predictions.createRoute(args))
+                    },
+                    onOpenAnswerBuilderClick = { args ->
+                        navController.navigate(Screen.AnswerBuilder.createRoute(args))
                     }
                 )
             }
@@ -264,27 +276,66 @@ fun AppNavigation() {
                 navController = navController,
                 protectedRoute = Screen.SubjectOverview.route
             ) {
-                SubjectOverviewScreen(
-                    subjectCode = subjectCode,
-                    onOpenQuestionsClick = { selectedSubjectCode ->
-                        navController.navigate(Screen.Questions.createRoute(selectedSubjectCode))
+                SubjectDiscoveryScreen(
+                    initialSubjectCode = subjectCode,
+                    onOpenSimilarQuestionsClick = { args ->
+                        navController.navigate(Screen.SimilarQuestions.createRoute(args))
                     },
-                    onOpenSuggestionsClick = { selectedSubjectCode ->
-                        navController.navigate(Screen.Suggestions.createRoute(selectedSubjectCode))
+                    onOpenTopicAnalysisClick = { args ->
+                        navController.navigate(Screen.TopicAnalysis.createRoute(args))
                     },
-                    onOpenAnalysisClick = { selectedSubjectCode ->
-                        navController.navigate(Screen.Analysis.createRoute(selectedSubjectCode))
+                    onOpenPredictionsClick = { args ->
+                        navController.navigate(Screen.Predictions.createRoute(args))
                     },
-                    onOpenPredictionsClick = { selectedSubjectCode ->
-                        navController.navigate(Screen.Predictions.createRoute(selectedSubjectCode))
-                    },
+                    onOpenAnswerBuilderClick = { args ->
+                        navController.navigate(Screen.AnswerBuilder.createRoute(args))
+                    }
+                )
+            }
+        }
+
+        composable(route = Screen.SimilarQuestions.route) { navBackStackEntry ->
+            val selectedSubjectNavArgs = SelectedSubjectNavArgs.fromBackStackEntry(navBackStackEntry)
+
+            ProtectedRoute(
+                navController = navController,
+                protectedRoute = Screen.SimilarQuestions.route
+            ) {
+                SimilarQuestionsScreen(
+                    selectedSubjectNavArgs = selectedSubjectNavArgs,
                     onGetAnswerClick = { answerPayload ->
                         saveAnswerPayload(
                             savedStateHandle = navController.currentBackStackEntry?.savedStateHandle,
                             answerPayload = answerPayload
                         )
-                        navController.navigate(Screen.Answer.createRoute(answerPayload.subjectCode.ifBlank { subjectCode }))
+                        navController.navigate(Screen.Answer.createRoute(answerPayload.subjectCode.ifBlank { selectedSubjectNavArgs.subjectCode }))
                     }
+                )
+            }
+        }
+
+        composable(route = Screen.TopicAnalysis.route) { navBackStackEntry ->
+            val selectedSubjectNavArgs = SelectedSubjectNavArgs.fromBackStackEntry(navBackStackEntry)
+
+            ProtectedRoute(
+                navController = navController,
+                protectedRoute = Screen.TopicAnalysis.route
+            ) {
+                TopicAnalysisScreen(
+                    selectedSubjectNavArgs = selectedSubjectNavArgs
+                )
+            }
+        }
+
+        composable(route = Screen.AnswerBuilder.route) { navBackStackEntry ->
+            val selectedSubjectNavArgs = SelectedSubjectNavArgs.fromBackStackEntry(navBackStackEntry)
+
+            ProtectedRoute(
+                navController = navController,
+                protectedRoute = Screen.AnswerBuilder.route
+            ) {
+                AnswerBuilderScreen(
+                    selectedSubjectNavArgs = selectedSubjectNavArgs
                 )
             }
         }
@@ -301,20 +352,20 @@ fun AppNavigation() {
         }
 
         composable(route = Screen.Predictions.route) { navBackStackEntry ->
-            val subjectCode = navBackStackEntry.arguments?.getString("subjectCode") ?: ""
+            val selectedSubjectNavArgs = SelectedSubjectNavArgs.fromBackStackEntry(navBackStackEntry)
 
             ProtectedRoute(
                 navController = navController,
                 protectedRoute = Screen.Predictions.route
             ) {
                 SubjectPredictionsScreen(
-                    subjectCode = subjectCode,
+                    selectedSubjectNavArgs = selectedSubjectNavArgs,
                     onGetAnswerClick = { answerPayload ->
                         saveAnswerPayload(
                             savedStateHandle = navController.currentBackStackEntry?.savedStateHandle,
                             answerPayload = answerPayload
                         )
-                        navController.navigate(Screen.Answer.createRoute(answerPayload.subjectCode.ifBlank { subjectCode }))
+                        navController.navigate(Screen.Answer.createRoute(answerPayload.subjectCode.ifBlank { selectedSubjectNavArgs.subjectCode }))
                     }
                 )
             }
@@ -328,7 +379,7 @@ fun AppNavigation() {
                 protectedRoute = Screen.Suggestions.route
             ) {
                 SubjectSuggestionsScreen(
-                    subjectCode = subjectCode,
+                    selectedSubjectNavArgs = SelectedSubjectNavArgs(subjectCode = subjectCode),
                     onGetAnswerClick = { answerPayload ->
                         saveAnswerPayload(
                             savedStateHandle = navController.currentBackStackEntry?.savedStateHandle,

@@ -28,13 +28,14 @@ import com.qarena.android.presentation.common.AnswerPayload
 import com.qarena.android.presentation.common.DiagramInfo
 import com.qarena.android.presentation.common.DiagramRenderer
 import com.qarena.android.presentation.common.toDiagramInfo
+import com.qarena.android.presentation.navigation.SelectedSubjectNavArgs
 import com.qarena.android.presentation.subjects.PaperTypeSelector
 import com.qarena.android.util.QuestionPresentationLookups
 import com.qarena.android.util.SuggestionLookups
 
 @Composable
 fun SubjectPredictionsScreen(
-    subjectCode: String,
+    selectedSubjectNavArgs: SelectedSubjectNavArgs,
     onGetAnswerClick: (AnswerPayload) -> Unit,
     subjectPredictionsViewModel: SubjectPredictionsViewModel = viewModel()
 ) {
@@ -43,13 +44,16 @@ fun SubjectPredictionsScreen(
     val supportedPaperTypes = subjectPredictionsViewModel.supportedPaperTypes
     val selectedPaperType = subjectPredictionsViewModel.selectedPaperType
 
-    LaunchedEffect(subjectCode) {
+    LaunchedEffect(selectedSubjectNavArgs.subjectCode, selectedSubjectNavArgs.paperType) {
         AnalyticsTracker.trackScreen(
             screenName = "Predictions",
-            path = "/android/subjects/$subjectCode/predictions",
-            subjectCode = subjectCode
+            path = "/android/subjects/${selectedSubjectNavArgs.subjectCode}/predictions",
+            subjectCode = selectedSubjectNavArgs.subjectCode
         )
-        subjectPredictionsViewModel.loadSubjectPredictions(subjectCode)
+        subjectPredictionsViewModel.loadSubjectPredictions(
+            selectedSubjectNavArgs.subjectCode,
+            paperType = selectedSubjectNavArgs.paperType
+        )
     }
 
     Surface(
@@ -70,7 +74,7 @@ fun SubjectPredictionsScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = subject?.displayLabel() ?: subjectCode,
+                text = selectedSubjectNavArgs.subjectName?.takeIf { it.isNotBlank() } ?: subject?.displayLabel() ?: selectedSubjectNavArgs.subjectCode,
                 fontSize = 16.sp
             )
 
@@ -89,7 +93,7 @@ fun SubjectPredictionsScreen(
                     supportedPaperTypes = supportedPaperTypes,
                     selectedPaperType = selectedPaperType,
                     onPaperTypeSelected = { paperType ->
-                        subjectPredictionsViewModel.selectPaperType(subjectCode, paperType)
+                        subjectPredictionsViewModel.selectPaperType(selectedSubjectNavArgs.subjectCode, paperType)
                     }
                 )
             }
@@ -112,7 +116,7 @@ fun SubjectPredictionsScreen(
                 is SubjectPredictionsUiState.Success -> {
                     SubjectPredictionsContent(
                         predictions = predictionsState.predictions,
-                        subjectCode = subjectCode,
+                        subjectCode = selectedSubjectNavArgs.subjectCode,
                         subjectAcademicLevel = subject?.academicLevel,
                         onGetAnswerClick = onGetAnswerClick
                     )

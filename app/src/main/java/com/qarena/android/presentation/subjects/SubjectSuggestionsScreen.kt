@@ -24,6 +24,7 @@ import com.qarena.android.model.displaySubtitle
 import com.qarena.android.presentation.common.AnswerPayload
 import com.qarena.android.presentation.common.DiagramRenderer
 import com.qarena.android.presentation.common.toDiagramInfo
+import com.qarena.android.presentation.navigation.SelectedSubjectNavArgs
 import com.qarena.android.ui.components.*
 import com.qarena.android.util.AcademicProfile
 import com.qarena.android.util.PaperTypeLookups
@@ -32,7 +33,7 @@ import com.qarena.android.util.QuestionPresentationLookups
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SubjectSuggestionsScreen(
-    subjectCode: String,
+    selectedSubjectNavArgs: SelectedSubjectNavArgs,
     onGetAnswerClick: (AnswerPayload) -> Unit,
     subjectSuggestionsViewModel: SubjectSuggestionsViewModel = viewModel()
 ) {
@@ -44,13 +45,16 @@ fun SubjectSuggestionsScreen(
         supportedPaperTypes.isNotEmpty() &&
             AcademicProfile.isSyllabusScoped(subject?.academicLevel ?: SessionManager.userAcademicLevel)
 
-    LaunchedEffect(subjectCode) {
+    LaunchedEffect(selectedSubjectNavArgs.subjectCode, selectedSubjectNavArgs.paperType) {
         AnalyticsTracker.trackScreen(
             screenName = "Suggestions",
-            path = "/android/subjects/$subjectCode/suggestions",
-            subjectCode = subjectCode
+            path = "/android/subjects/${selectedSubjectNavArgs.subjectCode}/suggestions",
+            subjectCode = selectedSubjectNavArgs.subjectCode
         )
-        subjectSuggestionsViewModel.loadSuggestions(subjectCode)
+        subjectSuggestionsViewModel.loadSuggestions(
+            selectedSubjectNavArgs.subjectCode,
+            paperType = selectedSubjectNavArgs.paperType
+        )
     }
 
     Scaffold(
@@ -59,12 +63,12 @@ fun SubjectSuggestionsScreen(
                 title = {
                     Column {
                         Text(
-                            text = subject?.subjectName ?: "Suggestions",
+                            text = selectedSubjectNavArgs.subjectName ?: subject?.subjectName ?: "Suggestions",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = subject?.subjectCode ?: subjectCode,
+                            text = subject?.subjectCode ?: selectedSubjectNavArgs.subjectCode,
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -87,7 +91,7 @@ fun SubjectSuggestionsScreen(
                     supportedPaperTypes = supportedPaperTypes,
                     selectedPaperType = selectedPaperType,
                     onPaperTypeSelected = { paperType ->
-                        subjectSuggestionsViewModel.selectPaperType(subjectCode, paperType)
+                        subjectSuggestionsViewModel.selectPaperType(selectedSubjectNavArgs.subjectCode, paperType)
                     },
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
@@ -110,7 +114,7 @@ fun SubjectSuggestionsScreen(
                 } else {
                     "Get Suggestions"
                 },
-                onClick = { subjectSuggestionsViewModel.loadSuggestions(subjectCode) },
+                onClick = { subjectSuggestionsViewModel.loadSuggestions(selectedSubjectNavArgs.subjectCode) },
                 enabled = suggestionsState !is SubjectSuggestionsUiState.Loading
             )
 
@@ -118,10 +122,10 @@ fun SubjectSuggestionsScreen(
 
             SuggestionsContent(
                 suggestionsState = suggestionsState,
-                subjectCode = subjectCode,
+                subjectCode = selectedSubjectNavArgs.subjectCode,
                 subjectAcademicLevel = subject?.academicLevel,
                 onGetAnswerClick = onGetAnswerClick,
-                onRetry = { subjectSuggestionsViewModel.loadSuggestions(subjectCode) }
+                onRetry = { subjectSuggestionsViewModel.loadSuggestions(selectedSubjectNavArgs.subjectCode) }
             )
         }
     }

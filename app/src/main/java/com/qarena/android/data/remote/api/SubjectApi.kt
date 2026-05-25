@@ -1,6 +1,6 @@
 package com.qarena.android.data.remote.api
 
-import com.qarena.android.data.remote.dto.PredictionsResponse
+import com.qarena.android.data.remote.dto.PredictionListResponse
 import com.qarena.android.data.remote.dto.QuestionListResponse
 import com.qarena.android.data.remote.dto.SuggestionsResponse
 import com.qarena.android.data.remote.dto.SubjectAnalysisResponse
@@ -67,13 +67,13 @@ interface SubjectApi {
         @Query("department_id") departmentId: Int? = null,
         @Query("curriculum") curriculum: String? = null,
         @Query("stream_group") streamGroup: String? = null
-    ): Response<PredictionsResponse>
+    ): Response<PredictionListResponse>
 
     @GET("subjects/{subjectCode}/questions")
     suspend fun getQuestions(
         @Header("Authorization") authorization: String,
         @Path("subjectCode") subjectCode: String,
-        @Query("paper_type") paperType: String? = null,
+        @Query("paper_type") paperType: String
     ): QuestionListResponse
 
     @GET("subjects/{subject_code}/suggestions")

@@ -33,6 +33,9 @@ import com.qarena.android.util.PaperTypeLookups
 @Composable
 fun SubjectAnalysisScreen(
     subjectCode: String,
+    subjectName: String? = null,
+    screenTitle: String = "Analysis",
+    paperType: String? = null,
     subjectAnalysisViewModel: SubjectAnalysisViewModel = viewModel()
 ) {
     val analysisState = subjectAnalysisViewModel.analysisState
@@ -40,13 +43,13 @@ fun SubjectAnalysisScreen(
     val supportedPaperTypes = subjectAnalysisViewModel.supportedPaperTypes
     val selectedPaperType = subjectAnalysisViewModel.selectedPaperType
 
-    LaunchedEffect(subjectCode) {
+    LaunchedEffect(subjectCode, paperType) {
         AnalyticsTracker.trackScreen(
-            screenName = "Analysis",
+            screenName = screenTitle,
             path = "/android/subjects/$subjectCode/analysis",
             subjectCode = subjectCode
         )
-        subjectAnalysisViewModel.loadSubjectAnalysis(subjectCode)
+        subjectAnalysisViewModel.loadSubjectAnalysis(subjectCode, paperType)
     }
 
     Surface(
@@ -60,7 +63,7 @@ fun SubjectAnalysisScreen(
                 .padding(24.dp)
         ) {
             Text(
-                text = "Analysis",
+                text = screenTitle,
                 fontSize = 30.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -68,7 +71,7 @@ fun SubjectAnalysisScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = subject?.displayLabel() ?: subjectCode,
+                text = subjectName?.takeIf { it.isNotBlank() } ?: subject?.displayLabel() ?: subjectCode,
                 fontSize = 16.sp
             )
 

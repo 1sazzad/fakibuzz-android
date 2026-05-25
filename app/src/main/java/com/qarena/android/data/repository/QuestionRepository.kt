@@ -14,10 +14,14 @@ import android.util.Log
 import java.io.IOException
 import retrofit2.HttpException
 
+data class QuestionLoadResult(
+    val questions: List<QuestionResponse>,
+    val totalCount: Int
+)
+
 class QuestionRepository {
 
     private val subjectApi: SubjectApi = RetrofitClient.retrofit.create(SubjectApi::class.java)
-
     private val accessTokenProvider: () -> String? = { SessionManager.accessToken }
 
     suspend fun getQuestions(
@@ -25,7 +29,7 @@ class QuestionRepository {
         paperType: String? = null,
         debugScreenName: String? = null,
         subject: Subject? = null
-    ): Result<List<QuestionResponse>> {
+    ): Result<QuestionLoadResult> {
         val token = accessTokenProvider()
         val trimmedSubjectCode = subjectCode.trim()
         val normalizedPaperType = PaperTypeLookups.normalizePaperType(paperType)
@@ -48,6 +52,7 @@ class QuestionRepository {
                 screenName = debugScreenName ?: "Questions",
                 subject = subject,
                 subjectCode = trimmedSubjectCode,
+                paperType = normalizedPaperType,
                 limitApplied = false
             )
 
@@ -59,7 +64,7 @@ class QuestionRepository {
             val response: QuestionListResponse = subjectApi.getQuestions(
                 authorization = "Bearer $token",
                 subjectCode = trimmedSubjectCode,
-                    paperType = normalizedPaperType
+                paperType = normalizedPaperType ?: PaperTypeLookups.CQ
             )
 
             Log.d(
@@ -79,7 +84,12 @@ class QuestionRepository {
 
             Log.d("SubjectQuestions", "total=${response.totalCount()} finalCount=${questions.size}")
 
-            Result.success(questions)
+            Result.success(
+                QuestionLoadResult(
+                    questions = questions,
+                    totalCount = response.totalCount()
+                )
+            )
         } catch (exception: Exception) {
             logQuestionError(debugScreenName ?: "Questions", exception)
             Result.failure(Exception(mapThrowable(exception, normalizedPaperType != null)))
@@ -192,15 +202,6 @@ class QuestionRepository {
             429 -> "Too many requests. Please try again later."
             in 500..599 -> "Server error. Please try again."
             else -> ApiErrorParser.messageForHttpStatus(code, "Failed to load questions")
-        }
-    }
-
-    private fun backendAcademicLevel(value: String?): String? {
-        return when (value?.trim()?.lowercase()) {
-            "ssc" -> "SSC"
-            "hsc" -> "HSC"
-            "university" -> "UNIVERSITY"
-            else -> value?.trim()?.takeIf { it.isNotBlank() }
         }
     }
 }

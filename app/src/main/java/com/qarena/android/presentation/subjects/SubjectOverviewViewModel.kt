@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qarena.android.data.remote.dto.QuestionResponse
 import com.qarena.android.data.remote.dto.SubjectOverviewResponse
+import com.qarena.android.data.repository.QuestionLoadResult
 import com.qarena.android.data.repository.QuestionRepository
 import com.qarena.android.data.repository.SubjectRepository
 import com.qarena.android.model.Subject
@@ -48,13 +49,29 @@ class SubjectOverviewViewModel : ViewModel() {
     var selectedPaperType by mutableStateOf<String?>(null)
         private set
 
+    var questions by mutableStateOf<List<QuestionResponse>>(emptyList())
+        private set
+
+    var totalCount by mutableStateOf(0)
+        private set
+
+    var isLoading by mutableStateOf(false)
+        private set
+
+    var errorMessage by mutableStateOf<String?>(null)
+        private set
+
     fun loadSubjectData(subjectCode: String, paperType: String? = null) {
+        isLoading = true
+        errorMessage = null
         questionsState = QuestionsUiState.Loading
         viewModelScope.launch {
             val trimmedSubjectCode = subjectCode.trim()
 
             if (trimmedSubjectCode.isBlank()) {
                 overviewState = SubjectOverviewUiState.Error("Subject code is required")
+                errorMessage = "Subject code is required"
+                isLoading = false
                 return@launch
             }
 
@@ -76,6 +93,12 @@ class SubjectOverviewViewModel : ViewModel() {
                         overviewState = SubjectOverviewUiState.Error(
                             exception.message ?: "Failed to load subject overview"
                         )
+                        errorMessage = exception.message ?: "Failed to load subject overview"
+                        isLoading = false
+                        questionsState = QuestionsUiState.Error(errorMessage ?: "Failed to load subject overview")
+                        questions = emptyList()
+                        totalCount = 0
+                        return@launch
                     }
             }
 
@@ -95,8 +118,6 @@ class SubjectOverviewViewModel : ViewModel() {
             // Load Questions
             questionsState = QuestionsUiState.Loading
             
-            // To get ALL questions, we set a high limit and use paging if necessary.
-            // For now, we use a single large request of 500 to cover most subjects.
             val questionsResult = questionRepository.getQuestions(
                 subjectCode = trimmedSubjectCode,
                 paperType = effectivePaperType,
@@ -105,14 +126,20 @@ class SubjectOverviewViewModel : ViewModel() {
             )
 
             questionsResult
-                .onSuccess { questions ->
-                    questionsState = QuestionsUiState.Success(questions)
+                .onSuccess { questionLoadResult ->
+                    questions = questionLoadResult.questions
+                    totalCount = questionLoadResult.totalCount
+                    questionsState = QuestionsUiState.Success(questionLoadResult.questions)
                 }
                 .onFailure { exception ->
-                    questionsState = QuestionsUiState.Error(
-                        exception.message ?: "Failed to load questions"
-                    )
+                    val message = exception.message ?: "Failed to load questions"
+                    errorMessage = message
+                    questionsState = QuestionsUiState.Error(message)
+                    questions = emptyList()
+                    totalCount = 0
                 }
+
+            isLoading = false
         }
     }
 

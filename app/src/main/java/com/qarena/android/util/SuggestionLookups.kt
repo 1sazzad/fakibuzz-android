@@ -1,7 +1,7 @@
 package com.qarena.android.util
 
 import com.qarena.android.data.remote.dto.PredictionDto
-import com.qarena.android.data.remote.dto.PredictionsResponse
+import com.qarena.android.data.remote.dto.PredictionListResponse
 import com.qarena.android.data.remote.dto.SuggestionsResponse
 import com.qarena.android.model.Suggestion
 import com.qarena.android.util.PaperTypeLookups.normalizePaperType
@@ -20,12 +20,12 @@ object SuggestionLookups {
         return response.suggestions ?: response.data ?: response.results ?: emptyList()
     }
 
-    fun normalizePredictions(response: PredictionsResponse?): List<Suggestion> {
+    fun normalizePredictions(response: PredictionListResponse?): List<Suggestion> {
         if (response == null) {
             return emptyList()
         }
 
-        val payload = response.items ?: response.predictions ?: emptyList()
+        val payload = response.predictionList()
         return payload.map { it.toSuggestion() }
     }
 
@@ -46,12 +46,17 @@ object SuggestionLookups {
             return null
         }
 
-        return score.coerceIn(0.0, 1.0)
+        val normalized = when {
+            score <= 1.0 -> score * 100.0
+            else -> score
+        }
+
+        return normalized.coerceIn(0.0, 100.0)
     }
 
     fun formatPredictionScore(score: Double?): String? {
         val normalized = normalizePredictionScore(score) ?: return null
-        return String.format("%.2f", normalized)
+        return String.format("%.0f%%", normalized)
     }
 
     fun displaySafeText(text: String?, fallback: String? = "No question text"): String {
@@ -70,7 +75,7 @@ object SuggestionLookups {
             year = year,
             examYear = year,
             predictionScore = normalizePredictionScore(prediction_score),
-            paperType = null,
+            paperType = normalizePaperType(paperType),
             subQuestions = null,
             options = null,
             diagramRequired = diagram_required,

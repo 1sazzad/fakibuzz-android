@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qarena.android.data.remote.dto.QuestionResponse
+import com.qarena.android.data.repository.QuestionLoadResult
 import com.qarena.android.data.repository.QuestionRepository
 import com.qarena.android.model.Subject
 import com.qarena.android.util.PaperTypeLookups
@@ -21,6 +22,9 @@ class QuestionsViewModel : ViewModel() {
     private var loadJob: Job? = null
 
     var questions by mutableStateOf<List<QuestionResponse>>(emptyList())
+        private set
+
+    var totalCount by mutableStateOf(0)
         private set
 
     var isLoading by mutableStateOf(false)
@@ -44,6 +48,7 @@ class QuestionsViewModel : ViewModel() {
     fun loadQuestions(subjectCode: String, paperType: String? = null) {
         loadJob?.cancel()
         questions = emptyList()
+        totalCount = 0
         loadJob = viewModelScope.launch {
             val trimmedSubjectCode = subjectCode.trim()
 
@@ -84,11 +89,13 @@ class QuestionsViewModel : ViewModel() {
             )
 
             result
-                .onSuccess { questionList ->
-                    questions = questionList
+                .onSuccess { questionLoadResult ->
+                    questions = questionLoadResult.questions
+                    totalCount = questionLoadResult.totalCount
                 }
                 .onFailure { exception ->
                     errorMessage = exception.message ?: "Failed to load questions"
+                    totalCount = 0
                 }
 
             isLoading = false

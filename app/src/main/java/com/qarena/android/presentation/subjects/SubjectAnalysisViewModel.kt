@@ -5,8 +5,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
+import com.google.gson.JsonPrimitive
+import com.qarena.android.data.remote.dto.QuestionResponse
 import com.qarena.android.data.remote.dto.SubjectAnalysisResponse
 import com.qarena.android.data.repository.SubjectRepository
+import com.qarena.android.data.repository.QuestionRepository
 import com.qarena.android.model.Subject
 import com.qarena.android.util.PaperTypeLookups
 import com.qarena.android.util.SubjectLookups
@@ -22,6 +27,7 @@ sealed interface SubjectAnalysisUiState {
 class SubjectAnalysisViewModel : ViewModel() {
 
     private val subjectRepository = SubjectRepository()
+    private val questionRepository = QuestionRepository()
 
     var analysisState by mutableStateOf<SubjectAnalysisUiState>(SubjectAnalysisUiState.Idle)
         private set
@@ -66,9 +72,16 @@ class SubjectAnalysisViewModel : ViewModel() {
                     analysisState = SubjectAnalysisUiState.Success(analysis)
                 }
                 .onFailure { exception ->
-                    analysisState = SubjectAnalysisUiState.Error(
-                        exception.message ?: "Failed to load subject analysis"
-                    )
+                    val fallback = buildFallbackAnalysis(trimmedSubjectCode, effectivePaperType)
+                    fallback
+                        .onSuccess { analysis ->
+                            analysisState = SubjectAnalysisUiState.Success(analysis)
+                        }
+                        .onFailure {
+                            analysisState = SubjectAnalysisUiState.Error(
+                                exception.message ?: it.message ?: "Failed to load subject analysis"
+                            )
+                        }
                 }
         }
     }
@@ -106,5 +119,94 @@ class SubjectAnalysisViewModel : ViewModel() {
                     selectedPaperType = null
                 }
             }
+    }
+
+    private suspend fun buildFallbackAnalysis(
+        subjectCode: String,
+        paperType: String?
+    ): Result<SubjectAnalysisResponse> {
+        val effectivePaperType = paperType ?: PaperTypeLookups.CQ
+        val result = questionRepository.getQuestions(subjectCode, effectivePaperType)
+
+        return result.map { questionLoadResult ->
+            val questions = questionLoadResult.questions
+            SubjectAnalysisResponse(
+                subjectCode = subjectCode,
+                subjectName = subject?.subjectName,
+                totalQuestions = questions.size,
+                topics = buildTopicSummary(questions, effectivePaperType),
+                marks = buildMarksSummary(questions),
+                years = buildYearSummary(questions),
+                samples = buildSamples(questions),
+                summary = "Computed from questions API fallback",
+                message = "Using questions API fallback for topic analysis",
+                status = "fallback"
+            )
+        }
+    }
+
+    private fun buildTopicSummary(questions: List<QuestionResponse>, paperType: String): JsonArray {
+        val topics = questions
+            .groupBy { it.topic?.trim().takeUnless { topic -> topic.isNullOrBlank() } ?: "Uncategorized" }
+            .map { (topicName, topicQuestions) ->
+                val totalMarks = topicQuestions.sumOf { it.marks ?: 0 }
+                val averageMarks = if (topicQuestions.isNotEmpty()) totalMarks.toDouble() / topicQuestions.size else 0.0
+                val years = topicQuestions.mapNotNull { it.year ?: it.examYear }.distinct().sorted()
+                JsonObject().apply {
+                    addProperty("topic", topicName)
+                    addProperty("count", topicQuestions.size)
+                    addProperty("question_count", topicQuestions.size)
+                    addProperty("total_marks", totalMarks)
+                    addProperty("average_marks", averageMarks)
+                    addProperty("paper_type", paperType)
+                    add("years", JsonArray().apply {
+                        years.forEach { add(JsonPrimitive(it)) }
+                    })
+                }
+            }
+            .sortedByDescending { element -> element.get("count")?.asInt ?: 0 }
+
+        return JsonArray().apply {
+            topics.forEach { add(it) }
+        }
+    }
+
+    private fun buildMarksSummary(questions: List<QuestionResponse>): JsonArray {
+        return JsonArray().apply {
+            questions
+                .groupBy { it.marks ?: 0 }
+                .toSortedMap()
+                .forEach { (marks, groupedQuestions) ->
+                    add(
+                        JsonObject().apply {
+                            addProperty("marks", marks)
+                            addProperty("count", groupedQuestions.size)
+                        }
+                    )
+                }
+        }
+    }
+
+    private fun buildYearSummary(questions: List<QuestionResponse>): JsonArray {
+        val years = questions.mapNotNull { it.year ?: it.examYear }.distinct().sortedDescending()
+
+        return JsonArray().apply {
+            years.forEach { add(JsonPrimitive(it)) }
+        }
+    }
+
+    private fun buildSamples(questions: List<QuestionResponse>): JsonArray {
+        return JsonArray().apply {
+            questions.take(5).forEach { question ->
+                add(
+                    JsonObject().apply {
+                        addProperty("question_text", question.questionText ?: "")
+                        addProperty("topic", question.topic ?: "")
+                        addProperty("year", question.year ?: question.examYear ?: 0)
+                        addProperty("marks", question.marks ?: 0)
+                    }
+                )
+            }
+        }
     }
 }

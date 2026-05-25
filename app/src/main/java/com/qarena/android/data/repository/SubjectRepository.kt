@@ -461,6 +461,7 @@ class SubjectRepository(
 
         return when (code) {
             400 -> "Invalid paper type. Please choose CQ, MCQ, or WRITTEN."
+            422 -> "The selected subject scope could not be analyzed. Please try a different paper type."
             401 -> "Session expired. Please log in again."
             403 -> "You do not have access to this subject scope."
             404 -> "Subject not found or inactive."

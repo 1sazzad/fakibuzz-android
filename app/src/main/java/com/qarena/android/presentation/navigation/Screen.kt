@@ -20,6 +20,21 @@ sealed class Screen(val route: String) {
             return "subject-overview/${Uri.encode(subjectCode)}"
         }
     }
+    data object SimilarQuestions : Screen("similar-questions/{subjectCode}?subjectName={subjectName}&academicLevel={academicLevel}&group={group}&paperType={paperType}") {
+        fun createRoute(args: SelectedSubjectNavArgs): String {
+            return args.createRoute("similar-questions")
+        }
+    }
+    data object TopicAnalysis : Screen("topic-analysis/{subjectCode}?subjectName={subjectName}&academicLevel={academicLevel}&group={group}&paperType={paperType}") {
+        fun createRoute(args: SelectedSubjectNavArgs): String {
+            return args.createRoute("topic-analysis")
+        }
+    }
+    data object AnswerBuilder : Screen("answer-builder/{subjectCode}?subjectName={subjectName}&academicLevel={academicLevel}&group={group}&paperType={paperType}") {
+        fun createRoute(args: SelectedSubjectNavArgs): String {
+            return args.createRoute("answer-builder")
+        }
+    }
     data object Suggestions : Screen("suggestions/{subjectCode}") {
         fun createRoute(subjectCode: String): String {
             return "suggestions/${Uri.encode(subjectCode)}"
@@ -30,9 +45,9 @@ sealed class Screen(val route: String) {
             return "analysis/${Uri.encode(subjectCode)}"
         }
     }
-    data object Predictions : Screen("predictions/{subjectCode}") {
-        fun createRoute(subjectCode: String): String {
-            return "predictions/${Uri.encode(subjectCode)}"
+    data object Predictions : Screen("predictions/{subjectCode}?subjectName={subjectName}&academicLevel={academicLevel}&group={group}&paperType={paperType}") {
+        fun createRoute(args: SelectedSubjectNavArgs): String {
+            return args.createRoute("predictions")
         }
     }
     data object Questions : Screen("questions/{subjectCode}") {

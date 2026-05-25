@@ -31,6 +31,9 @@ data class QuestionDto(
     @SerializedName("id")
     val id: Int? = null,
 
+    @SerializedName("question_no")
+    val questionNo: String? = null,
+
     @SerializedName("question_text")
     val questionText: String? = null,
 
@@ -83,7 +86,16 @@ data class QuestionDto(
     val diagramType: String? = null,
 
     @SerializedName("diagram_svg")
-    val diagramSvg: String? = null
+    val diagramSvg: String? = null,
+
+    @SerializedName("diagram_url")
+    val diagramUrl: String? = null,
+
+    @SerializedName("diagram_reference")
+    val diagramReference: String? = null,
+
+    @SerializedName("diagram_description")
+    val diagramDescription: String? = null
 )
 
 fun SubQuestionDto.toSubQuestion(): SubQuestion {
@@ -99,7 +111,7 @@ fun SubQuestionDto.toSubQuestion(): SubQuestion {
 fun QuestionDto.toQuestionResponse(): QuestionResponse {
     return QuestionResponse(
         id = questionId ?: id,
-        questionNo = null,
+        questionNo = questionNo,
         paperType = paperType,
         section = section,
         questionType = questionType,
@@ -117,6 +129,9 @@ fun QuestionDto.toQuestionResponse(): QuestionResponse {
         subQuestions = subQuestions?.map { it.toSubQuestion() },
         diagramRequired = diagramRequired,
         diagramType = diagramType,
-        diagramSvg = diagramSvg
+        diagramSvg = diagramSvg,
+        diagramUrl = diagramUrl,
+        diagramReference = diagramReference,
+        diagramDescription = diagramDescription
     )
 }

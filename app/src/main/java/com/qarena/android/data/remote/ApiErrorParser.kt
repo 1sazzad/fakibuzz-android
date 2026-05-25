@@ -104,8 +104,6 @@ object ApiErrorParser {
             }
 
             "INVALID_PAPER_TYPE" -> "Invalid paper type. Please choose CQ, MCQ, or WRITTEN."
-
-            "UNAUTHORIZED", "TOKEN_EXPIRED" -> "Session expired. Please log in again."
             "SUBJECT_INACTIVE", "SUBJECT_NOT_FOUND", "NOT_FOUND" -> "Subject not found or inactive."
             "RATE_LIMITED", "TOO_MANY_REQUESTS" -> "Too many requests. Please try again later."
             else -> fallback ?: "Failed to load subject data. Please try again."
