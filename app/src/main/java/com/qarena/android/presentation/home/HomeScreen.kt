@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Feedback
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Person
@@ -33,6 +34,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(
     onViewSubjectsClick: () -> Unit,
+    onBoardPapersClick: () -> Unit,
     onSearchClick: () -> Unit,
     onFeedbackClick: () -> Unit,
     onProfileClick: () -> Unit,
@@ -161,10 +163,10 @@ fun HomeScreen(
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 ActionCard(
-                    title = "Feedback",
-                    icon = Icons.Default.Feedback,
-                    color = Color(0xFFF59E0B),
-                    onClick = onFeedbackClick,
+                    title = "Board Papers",
+                    icon = Icons.Default.Description,
+                    color = Color(0xFF2563EB),
+                    onClick = onBoardPapersClick,
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(16.dp))
@@ -177,6 +179,26 @@ fun HomeScreen(
                             onLogoutClick()
                         }
                     },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ActionCard(
+                    title = "Feedback",
+                    icon = Icons.Default.Feedback,
+                    color = Color(0xFFF59E0B),
+                    onClick = onFeedbackClick,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                ActionCard(
+                    title = "Profile",
+                    icon = Icons.Default.Person,
+                    color = Color(0xFF10B981),
+                    onClick = onProfileClick,
                     modifier = Modifier.weight(1f)
                 )
             }

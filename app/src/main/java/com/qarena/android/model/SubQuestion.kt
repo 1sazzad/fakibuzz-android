@@ -7,6 +7,12 @@ data class SubQuestion(
     @SerializedName("label")
     val label: String? = null,
 
+    @SerializedName("display_label")
+    val displayLabel: String? = null,
+
+    @SerializedName("question_no")
+    val questionNo: String? = null,
+
     @SerializedName(value = "question_text", alternate = ["text", "question"])
     val questionText: String? = null,
 

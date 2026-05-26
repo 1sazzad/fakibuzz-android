@@ -1,3 +1,5 @@
+val productionBaseUrl = "https://qarena.up.railway.app/"
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -23,13 +25,12 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("String", "BASE_URL", "\"http://192.168.0.179:8000/\"")
+            buildConfigField("String", "BASE_URL", "\"$productionBaseUrl\"")
         }
 
         release {
             isMinifyEnabled = false
-            // TODO: Replace with the finalized production API domain before release.
-            buildConfigField("String", "BASE_URL", "\"https://YOUR_PRODUCTION_API_DOMAIN/\"")
+            buildConfigField("String", "BASE_URL", "\"$productionBaseUrl\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

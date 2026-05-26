@@ -19,6 +19,7 @@ import com.qarena.android.presentation.auth.RegisterScreen
 import com.qarena.android.presentation.auth.ResetPasswordScreen
 import com.qarena.android.presentation.feedback.FeedbackScreen
 import com.qarena.android.presentation.home.HomeScreen
+import com.qarena.android.presentation.boardpapers.BoardPapersScreen
 import com.qarena.android.presentation.common.AnswerPayload
 import com.qarena.android.presentation.profile.ProfileScreen
 import com.qarena.android.presentation.profile.ProfileSetupScreen
@@ -187,6 +188,9 @@ fun AppNavigation() {
                     onViewSubjectsClick = {
                         navController.navigate(Screen.Subjects.route)
                     },
+                    onBoardPapersClick = {
+                        navController.navigate(Screen.BoardPapers.route)
+                    },
                     onSearchClick = {
                         navController.navigate(Screen.Search.route)
                     },
@@ -266,6 +270,15 @@ fun AppNavigation() {
                         navController.navigate(Screen.AnswerBuilder.createRoute(args))
                     }
                 )
+            }
+        }
+
+        composable(route = Screen.BoardPapers.route) {
+            ProtectedRoute(
+                navController = navController,
+                protectedRoute = Screen.BoardPapers.route
+            ) {
+                BoardPapersScreen()
             }
         }
 

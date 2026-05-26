@@ -15,6 +15,7 @@ sealed class Screen(val route: String) {
     data object Feedback : Screen("feedback")
     data object Search : Screen("search")
     data object Subjects : Screen("subjects")
+    data object BoardPapers : Screen("board_papers")
     data object SubjectOverview : Screen("subject-overview/{subjectCode}") {
         fun createRoute(subjectCode: String): String {
             return "subject-overview/${Uri.encode(subjectCode)}"
